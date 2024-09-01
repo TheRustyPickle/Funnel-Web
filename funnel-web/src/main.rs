@@ -1,13 +1,18 @@
+mod comms;
+mod http;
 mod initializer;
+mod ui;
 mod utils;
+mod ws;
 
 use eframe::{WebLogger, WebOptions, WebRunner};
+use log::LevelFilter;
 
 use crate::initializer::MainWindow;
 
 #[cfg(target_arch = "wasm32")]
 fn main() {
-    WebLogger::init(log::LevelFilter::Debug).ok();
+    WebLogger::init(LevelFilter::Debug).ok();
 
     let web_options = WebOptions::default();
 
