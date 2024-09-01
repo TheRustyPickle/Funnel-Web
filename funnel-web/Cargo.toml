@@ -1,0 +1,30 @@
+[package]
+name = "funnel-web"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "funnel-web"
+path = "src/main.rs"
+
+[dependencies]
+serde = { workspace = true }
+funnel-shared = { workspace = true }
+ewebsock = "0.6.0"
+tokio = { version = "1.40.0", features = ["rt"] }
+reqwest = "0.12.7"
+serde_json = { workspace = true }
+egui = "0.28.1"
+eframe = { version = "0.28.1", default-features = false, features = [
+    "default_fonts",
+    "glow",
+    "persistence",
+] }
+log = "0.4.22"
+wasm-bindgen-futures = "0.4.43"
+web-sys = "0.3.70"
+egui-dropdown = "0.10.0"
+egui_extras = { version = "0.28.1", features = ["datepicker", "all_loaders"] }
+egui_plot = "0.28.1"
+chrono = "0.4.38"
+image = "0.25.2"
