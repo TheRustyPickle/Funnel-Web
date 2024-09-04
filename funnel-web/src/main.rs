@@ -1,14 +1,7 @@
-mod comms;
-mod http;
-mod initializer;
-mod ui;
-mod utils;
-mod ws;
-
 use eframe::{WebLogger, WebOptions, WebRunner};
 use log::LevelFilter;
 
-use crate::initializer::MainWindow;
+use funnel_web::core::MainWindow;
 
 #[cfg(target_arch = "wasm32")]
 fn main() {

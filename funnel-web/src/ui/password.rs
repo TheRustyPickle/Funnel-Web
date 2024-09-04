@@ -1,12 +1,62 @@
 use egui::{Align, Button, Grid, Layout, TextEdit, Ui, Vec2};
 
-use crate::initializer::MainWindow;
-use crate::utils::get_new_x;
+use crate::core::{get_new_x, MainWindow};
+use crate::web_worker::WorkerMessage;
 
-#[derive(Default)]
+#[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct PasswordStatus {
-    pass: String,
+    pub pass: String,
     show_pass: bool,
+    pass_authenticated: bool,
+    authenticating: bool,
+    temp_pass: String,
+}
+
+impl PasswordStatus {
+    pub fn pass_authenticated(&self) -> bool {
+        self.pass_authenticated
+    }
+
+    pub fn is_authenticating(&self) -> bool {
+        self.authenticating
+    }
+
+    pub fn set_authenticated(&mut self) {
+        self.pass_authenticated = true;
+    }
+
+    pub fn failed_connection(&mut self) {
+        self.pass_authenticated = false;
+        self.authenticating = false;
+        self.temp_pass.clear();
+    }
+
+    pub fn clear_pass(&mut self) {
+        self.temp_pass.clear();
+        self.pass.clear();
+    }
+
+    pub fn set_temp_pass(&mut self, pass: String) {
+        self.temp_pass = pass
+    }
+
+    pub fn temp_pass(&self) -> String {
+        self.temp_pass.clone()
+    }
+
+    fn add_submit_button(&self, ui: &mut Ui) -> bool {
+        let mut clicked = false;
+        ui.vertical_centered(|ui| {
+            let submit_button = Button::new("Submit").min_size(Vec2::new(80.0, 40.0));
+            if ui
+                .add_enabled(!self.authenticating, submit_button)
+                .clicked()
+            {
+                clicked = true;
+            }
+        });
+        clicked
+    }
 }
 
 impl MainWindow {
@@ -48,9 +98,9 @@ impl MainWindow {
             });
 
         ui.add_space(10.0);
-
-        ui.vertical_centered(|ui| {
-            ui.add_sized(Vec2::new(80.0, 40.0), Button::new("Submit"));
-        });
+        if self.password.add_submit_button(ui) {
+            self.password.authenticating = true;
+            self.send(WorkerMessage::StartConnection(self.password.pass.clone()));
+        }
     }
 }

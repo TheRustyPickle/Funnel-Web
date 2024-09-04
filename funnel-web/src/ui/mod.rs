@@ -1,5 +1,5 @@
 mod panels;
-mod pass_ui;
+mod password;
 
 pub use panels::*;
-pub use pass_ui::*;
+pub use password::*;
