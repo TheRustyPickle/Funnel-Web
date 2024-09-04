@@ -1,9 +1,9 @@
 pub mod guild_channel;
 
+pub use guild_channel::*;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
-
-use crate::guild_channel::GuildWithChannels;
 
 #[derive(Serialize, Deserialize)]
 pub enum ResultData {
