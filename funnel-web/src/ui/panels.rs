@@ -2,14 +2,20 @@ use egui::{
     global_dark_light_mode_switch, menu, Align, CentralPanel, Context, Layout, ScrollArea,
     SidePanel, Spinner, TopBottomPanel,
 };
+use std::collections::VecDeque;
 use strum::IntoEnumIterator;
 
 use crate::core::{MainWindow, TabState};
-#[derive(serde::Deserialize, serde::Serialize)]
+use crate::ui::DateNavigator;
+use crate::{AppEvent, AppStatus};
+
 pub struct PanelStatus {
     tab_state: TabState,
     show_guild: bool,
     show_channel: bool,
+    show_spinner: bool,
+    date_nav: DateNavigator,
+    app_status: AppStatus,
 }
 
 impl Default for PanelStatus {
@@ -18,17 +24,20 @@ impl Default for PanelStatus {
             tab_state: TabState::default(),
             show_guild: true,
             show_channel: true,
+            show_spinner: false,
+            date_nav: DateNavigator::default(),
+            app_status: AppStatus::default(),
         }
     }
 }
 
 impl PanelStatus {
-    fn show_upper_bar(&mut self, ctx: &Context) {
+    fn show_upper_bar(&mut self, ctx: &Context, events: &mut VecDeque<AppEvent>) {
         TopBottomPanel::top("upper_bar")
             .show_separator_line(false)
             .show(ctx, |ui| {
                 ui.add_space(4.0);
-                menu::bar(ui, |ui| {
+                ui.horizontal(|ui| {
                     global_dark_light_mode_switch(ui);
                     ui.separator();
                     if ui
@@ -46,7 +55,12 @@ impl PanelStatus {
                     {
                         self.show_channel = !self.show_channel;
                     };
+                    ui.separator();
+                    self.date_nav.show_ui(ui, events);
                 });
+
+                // menu::bar(ui, |ui| {
+                // });
                 ui.add_space(0.5);
             });
     }
@@ -66,16 +80,12 @@ impl PanelStatus {
                 ui.add_space(1.0);
             });
     }
-}
 
-impl MainWindow {
-    pub fn show_panels(&mut self, ctx: &Context) {
-        self.panels.show_upper_bar(ctx);
-
+    fn show_left_bar(&self, ctx: &Context) {
         SidePanel::left("left_panel")
             .max_width(70.0)
             .resizable(false)
-            .show_animated(ctx, self.panels.show_guild, |ui| {
+            .show_animated(ctx, self.show_guild, |ui| {
                 ScrollArea::vertical().show(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.add_space(5.0);
@@ -85,8 +95,10 @@ impl MainWindow {
                     })
                 });
             });
+    }
 
-        SidePanel::right("right_panel").show_animated(ctx, self.panels.show_channel, |ui| {
+    fn show_right_bar(&self, ctx: &Context) {
+        SidePanel::right("right_panel").show_animated(ctx, self.show_channel, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.vertical_centered(|ui| {
                     ui.add_space(5.0);
@@ -103,33 +115,41 @@ impl MainWindow {
                 );
             });
         });
+    }
+
+    fn show_bottom_bar(&self, ctx: &Context) {
+        TopBottomPanel::bottom("bottom_panel")
+            .show_separator_line(false)
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(format!("Status: {}", self.app_status));
+                    if self.show_spinner {
+                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                            ui.add(Spinner::new());
+                        });
+                    }
+                })
+            });
+    }
+}
+
+impl MainWindow {
+    pub fn show_panels(&mut self, ctx: &Context) {
+        self.panels.show_upper_bar(ctx, &mut self.events);
+        self.panels.show_left_bar(ctx);
+        self.panels.show_right_bar(ctx);
+        self.panels.show_bottom_bar(ctx);
 
         if self.password.pass_authenticated() {
             self.panels.show_top_bar(ctx);
         }
 
-        TopBottomPanel::bottom("bottom_panel")
-            .show_separator_line(false)
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    ui.label("Status: Doing Nothing");
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        ui.add(Spinner::new());
-                    });
-                })
-            });
-
         CentralPanel::default().show(ctx, |ui| {
             if !self.password.pass_authenticated() {
-                self.show_pass_ui(ui);
+                self.password.show_pass_ui(ui, &mut self.events);
             } else {
-                match self.panels.tab_state {
-                    _ => {
-                        ui.vertical_centered(|ui| {
-                            ui.heading("Under Construction");
-                        });
-                    }
-                };
+                self.tabs
+                    .show_tab_ui(ui, self.panels.tab_state, &mut self.events);
             }
         });
     }

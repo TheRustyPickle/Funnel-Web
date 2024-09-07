@@ -30,7 +30,6 @@ impl MainWindow {
                 self.password.set_authenticated();
             }
             WorkerMessage::WsPassword(pass) => {
-                info!("Got the password {pass}");
                 let options = Options::default();
                 let result = ewebsock::connect(WS_URL, options);
                 match result {

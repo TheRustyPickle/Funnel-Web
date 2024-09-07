@@ -6,32 +6,34 @@ use ewebsock::{WsReceiver, WsSender};
 use gloo_worker::{Spawnable, WorkerBridge};
 use log::info;
 use std::cell::Cell;
+use std::collections::VecDeque;
 use std::rc::Rc;
 
-use crate::ui::{PanelStatus, PasswordStatus};
+use crate::ui::{DateNavigator, PanelStatus, PasswordStatus, TabHandler};
 use crate::web_worker::{WebWorker, WorkerMessage};
+use crate::AppEvent;
 
-#[derive(serde::Deserialize, serde::Serialize)]
 pub struct MainWindow {
     pub password: PasswordStatus,
     pub panels: PanelStatus,
-    #[serde(skip)]
+    pub date_nav: DateNavigator,
+    pub tabs: TabHandler,
+    pub events: VecDeque<AppEvent>,
     pub bridge: Option<WorkerBridge<WebWorker>>,
-    #[serde(skip)]
     pub data_update: Option<Rc<Cell<Option<WorkerMessage>>>>,
-    #[serde(skip)]
     pub ws_sender: Option<WsSender>,
-    #[serde(skip)]
     pub ws_receiver: Option<WsReceiver>,
 }
 
 impl App for MainWindow {
     fn update(&mut self, ctx: &Context, _: &mut Frame) {
+        self.check_event(ctx);
         let data_update = self.data_update.as_mut().unwrap();
         if let Some(message) = data_update.take() {
             if let Some(reply) = self.handle_main_comms(message) {
                 self.send(reply);
             };
+            ctx.request_repaint();
         };
         self.check_ws_receiver();
         self.show_panels(ctx);
@@ -56,6 +58,9 @@ impl MainWindow {
         Self {
             password: PasswordStatus::default(),
             panels: PanelStatus::default(),
+            date_nav: DateNavigator::default(),
+            tabs: TabHandler::default(),
+            events: VecDeque::new(),
             bridge: Some(bridge),
             data_update: Some(data_update),
             ws_sender: None,

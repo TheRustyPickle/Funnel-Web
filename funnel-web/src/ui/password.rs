@@ -1,7 +1,8 @@
 use egui::{Align, Button, Grid, Layout, TextEdit, Ui, Vec2};
+use std::collections::VecDeque;
 
 use crate::core::{get_new_x, MainWindow};
-use crate::web_worker::WorkerMessage;
+use crate::AppEvent;
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct PasswordStatus {
@@ -57,16 +58,14 @@ impl PasswordStatus {
         });
         clicked
     }
-}
 
-impl MainWindow {
-    pub fn show_pass_ui(&mut self, ui: &mut Ui) {
+    pub fn show_pass_ui(&mut self, ui: &mut Ui, events: &mut VecDeque<AppEvent>) {
         ui.add_space(20.0);
         ui.vertical_centered(|ui| {
             ui.heading("Enter Password");
         });
         ui.add_space(10.0);
-        let (x_10, _) = get_new_x(ui);
+        let (x_10, _) = get_new_x(ui, 10.0);
 
         Grid::new("Pass Grid")
             .num_columns(2)
@@ -78,29 +77,32 @@ impl MainWindow {
                 });
 
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    let (_, new_x) = get_new_x(ui);
+                    let (_, new_x) = get_new_x(ui, 10.0);
                     let new_size = Vec2::new(new_x, 20.0);
 
-                    let text_edit = TextEdit::singleline(&mut self.password.pass)
-                        .password(!self.password.show_pass)
+                    let text_edit = TextEdit::singleline(&mut self.pass)
+                        .password(!self.show_pass)
                         .hint_text("Password");
                     ui.add_sized(new_size, text_edit)
                         .on_hover_text("Enter the password to access the application");
 
                     if ui
-                        .selectable_label(self.password.show_pass, "👁")
+                        .selectable_label(self.show_pass, "👁")
                         .on_hover_text("Show/Hide password")
                         .clicked()
                     {
-                        self.password.show_pass = !self.password.show_pass
+                        self.show_pass = !self.show_pass
                     };
                 });
             });
 
         ui.add_space(10.0);
-        if self.password.add_submit_button(ui) {
-            self.password.authenticating = true;
-            self.send(WorkerMessage::StartConnection(self.password.pass.clone()));
+        if self.add_submit_button(ui) {
+            self.authenticating = true;
+            events.push_back(AppEvent::StartWsConnection)
+            // self.send(WorkerMessage::StartConnection(self.password.pass.clone()));
         }
     }
 }
+
+impl MainWindow {}
