@@ -13,7 +13,7 @@ pub struct PanelStatus {
     tab_state: TabState,
     show_guild: bool,
     show_channel: bool,
-    show_spinner: bool,
+    dot_count: usize,
     date_nav: DateNavigator,
     app_status: AppStatus,
 }
@@ -24,7 +24,7 @@ impl Default for PanelStatus {
             tab_state: TabState::default(),
             show_guild: true,
             show_channel: true,
-            show_spinner: false,
+            dot_count: 0,
             date_nav: DateNavigator::default(),
             app_status: AppStatus::default(),
         }
@@ -59,8 +59,6 @@ impl PanelStatus {
                     self.date_nav.show_ui(ui, events);
                 });
 
-                // menu::bar(ui, |ui| {
-                // });
                 ui.add_space(0.5);
             });
     }
@@ -117,19 +115,37 @@ impl PanelStatus {
         });
     }
 
-    fn show_bottom_bar(&self, ctx: &Context) {
+    fn show_bottom_bar(&mut self, ctx: &Context) {
+        let show_spinner = self.app_status.show_spinner();
         TopBottomPanel::bottom("bottom_panel")
             .show_separator_line(false)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(format!("Status: {}", self.app_status));
-                    if self.show_spinner {
+                    let mut status_text = self.app_status.to_string();
+                    if show_spinner {
+                        status_text.push_str(".".repeat(self.dot_count).as_ref());
+                    }
+                    ui.label(format!("Status: {}", status_text));
+
+                    if show_spinner {
                         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                             ui.add(Spinner::new());
                         });
                     }
                 })
             });
+    }
+
+    pub fn set_app_status(&mut self, status: AppStatus) {
+        self.app_status = status;
+    }
+
+    pub fn next_dot(&mut self) {
+        if self.dot_count == 3 {
+            self.dot_count = 0
+        } else {
+            self.dot_count += 1;
+        }
     }
 }
 

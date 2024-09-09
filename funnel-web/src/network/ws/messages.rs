@@ -1,35 +1,45 @@
-use ewebsock::WsEvent;
+use funnel_shared::{ErrorType, Request, Response, WsResponse};
 use log::{error, info};
 
-use crate::core::MainWindow;
+use crate::{AppStatus, MainWindow};
 
-impl MainWindow {
-    pub fn check_ws_receiver(&mut self) {
-        if self.ws_receiver.is_some() {
-            for _ in 0..50 {
-                if let Some(event) = self.ws_receiver.as_ref().unwrap().try_recv() {
-                    match event {
-                        WsEvent::Closed => {
-                            info!("Connection to WS has been closed");
-                            self.remove_channels();
-                            self.password.failed_connection();
-                            break;
-                        }
-                        WsEvent::Error(e) => {
-                            error!("Error in ws. Reason: {e}");
-                        }
-                        WsEvent::Opened => {
-                            info!("Connection to WS has been opened");
-                            self.send_ws(format!("/password {}", self.password.temp_pass()));
-                            self.password.set_authenticated();
-                            self.password.clear_pass();
-                        }
-                        WsEvent::Message(message) => {
-                            info!("Got a new event. Details: {message:#?}");
-                        }
-                    }
-                }
-            }
+pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Option<Request> {
+    if response.status.is_error() {
+        handle_errors(window, response.get_error())
+    }
+    match response.response {
+        Response::AuthenticationSuccess => {
+            info!("Client successfully authenticated.");
+            window.panels.set_app_status(AppStatus::Fetching);
+        }
+
+        Response::Guilds(guilds) => {}
+        Response::Messages(messages) => {}
+        Response::Error(_) => unreachable!(),
+    }
+    None
+}
+
+fn handle_errors(window: &mut MainWindow, error: ErrorType) {
+    match error {
+        ErrorType::AuthenticationFailed(reason) => {
+            error!("Authentication attempt with the server failed. Reason: {reason}",);
+            window.password.failed_connection();
+            window.panels.set_app_status(AppStatus::FailedAuth(reason));
+        }
+        ErrorType::ClientNotAuthenticated => {
+            error!("Client is not authenticated by the server.");
+            window.password.failed_connection();
+            window
+                .panels
+                .set_app_status(AppStatus::FailedAuth(String::from(
+                    "Client is not authenticated",
+                )));
+        }
+        ErrorType::UnknowError(reason) => {
+            error!("Unexpected error. Reason: {reason}")
+            // TODO: Perhaps maintain an enum for work process => restart that
+            // Fetch Guild => Fetch Message => ??
         }
     }
 }

@@ -1,4 +1,5 @@
-use egui::{Align, Button, Grid, Layout, TextEdit, Ui, Vec2};
+use egui::{Align, Button, Context, Grid, Key, Layout, TextEdit, Ui, Vec2};
+use log::info;
 use std::collections::VecDeque;
 
 use crate::core::{get_new_x, MainWindow};
@@ -67,6 +68,8 @@ impl PasswordStatus {
         ui.add_space(10.0);
         let (x_10, _) = get_new_x(ui, 10.0);
 
+        let enter_pressed = ui.ctx().input(|i| i.key_pressed(Key::Enter));
+
         Grid::new("Pass Grid")
             .num_columns(2)
             .spacing([5.0, 10.0])
@@ -82,9 +85,17 @@ impl PasswordStatus {
 
                     let text_edit = TextEdit::singleline(&mut self.pass)
                         .password(!self.show_pass)
-                        .hint_text("Password");
-                    ui.add_sized(new_size, text_edit)
+                        .hint_text("Password")
+                        .return_key(None);
+
+                    let text_edit_box = ui
+                        .add_sized(new_size, text_edit)
                         .on_hover_text("Enter the password to access the application");
+
+                    if text_edit_box.has_focus() && enter_pressed && !self.authenticating {
+                        self.authenticating = true;
+                        events.push_back(AppEvent::StartWsConnection);
+                    }
 
                     if ui
                         .selectable_label(self.show_pass, "👁")
@@ -100,7 +111,6 @@ impl PasswordStatus {
         if self.add_submit_button(ui) {
             self.authenticating = true;
             events.push_back(AppEvent::StartWsConnection)
-            // self.send(WorkerMessage::StartConnection(self.password.pass.clone()));
         }
     }
 }

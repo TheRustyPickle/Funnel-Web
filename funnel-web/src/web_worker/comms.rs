@@ -4,5 +4,5 @@ use serde::{Deserialize, Serialize};
 pub enum WorkerMessage {
     StartConnection(String),
     WsPassword(String),
-    ConnectionEstablished,
+    AuthError(String),
 }

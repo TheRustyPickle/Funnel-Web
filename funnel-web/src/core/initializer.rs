@@ -3,8 +3,8 @@ use egui::Context;
 use egui_extras::install_image_loaders;
 use ewebsock::WsMessage;
 use ewebsock::{WsReceiver, WsSender};
+use funnel_shared::Request;
 use gloo_worker::{Spawnable, WorkerBridge};
-use log::info;
 use std::cell::Cell;
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -42,7 +42,7 @@ impl App for MainWindow {
 
 impl MainWindow {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_pixels_per_point(1.3);
+        cc.egui_ctx.set_pixels_per_point(1.2);
         install_image_loaders(&cc.egui_ctx);
 
         let ctx = cc.egui_ctx.clone();
@@ -82,10 +82,9 @@ impl MainWindow {
         self.ws_receiver = None;
     }
 
-    pub fn send_ws(&mut self, message: String) {
-        info!("Sending ws");
+    pub fn send_ws(&mut self, message: Request) {
         if let Some(sender) = self.ws_sender.as_mut() {
-            sender.send(WsMessage::Text(message));
+            sender.send(WsMessage::Text(message.to_json()));
         }
     }
 }
