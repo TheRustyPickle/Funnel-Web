@@ -25,7 +25,6 @@ impl MainWindow {
                             self.send_ws(Request::auth(self.password.temp_pass()));
                             self.password.set_authenticated();
                             self.password.clear_pass();
-                            self.send_ws(Request::guilds());
                         }
                         WsEvent::Message(message) => {
                             if let WsMessage::Text(text) = message {

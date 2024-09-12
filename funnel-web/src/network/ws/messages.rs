@@ -5,15 +5,19 @@ use crate::{AppStatus, MainWindow};
 
 pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Option<Request> {
     if response.status.is_error() {
-        handle_errors(window, response.get_error())
+        handle_errors(window, response.get_error());
+        return None;
     }
     match response.response {
         Response::AuthenticationSuccess => {
-            info!("Client successfully authenticated.");
+            info!("Client successfully authenticated. Getting guild list");
             window.panels.set_app_status(AppStatus::Fetching);
+            window.send_ws(Request::guilds());
         }
-
-        Response::Guilds(guilds) => {}
+        Response::Guilds(guilds) => {
+            window.panels.set_guild_channels(guilds);
+            window.panels.set_app_status(AppStatus::Idle);
+        }
         Response::Messages(messages) => {}
         Response::Error(_) => unreachable!(),
     }

@@ -4,8 +4,7 @@ use std::collections::VecDeque;
 use crate::{AppEvent, TabState};
 
 #[derive(Default)]
-pub struct TabHandler {
-}
+pub struct TabHandler {}
 
 impl TabHandler {
     pub fn show_tab_ui(&mut self, ui: &mut Ui, state: TabState, events: &mut VecDeque<AppEvent>) {

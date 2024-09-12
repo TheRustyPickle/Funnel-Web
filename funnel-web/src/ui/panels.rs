@@ -1,7 +1,8 @@
 use egui::{
-    global_dark_light_mode_switch, menu, Align, CentralPanel, Context, Layout, ScrollArea,
-    SidePanel, Spinner, TopBottomPanel,
+    global_dark_light_mode_switch, menu, Align, CentralPanel, Context, Image, ImageButton, Layout,
+    ScrollArea, SidePanel, Spinner, TopBottomPanel,
 };
+use funnel_shared::GuildWithChannels;
 use std::collections::VecDeque;
 use strum::IntoEnumIterator;
 
@@ -16,6 +17,9 @@ pub struct PanelStatus {
     dot_count: usize,
     date_nav: DateNavigator,
     app_status: AppStatus,
+    guild_channels: Vec<GuildWithChannels>,
+    selected_guild: usize,
+    selected_channel: usize,
 }
 
 impl Default for PanelStatus {
@@ -27,6 +31,9 @@ impl Default for PanelStatus {
             dot_count: 0,
             date_nav: DateNavigator::default(),
             app_status: AppStatus::default(),
+            guild_channels: Vec::new(),
+            selected_guild: 0,
+            selected_channel: 0,
         }
     }
 }
@@ -79,7 +86,7 @@ impl PanelStatus {
             });
     }
 
-    fn show_left_bar(&self, ctx: &Context) {
+    fn show_left_bar(&mut self, ctx: &Context) {
         SidePanel::left("left_panel")
             .max_width(70.0)
             .resizable(false)
@@ -90,12 +97,47 @@ impl PanelStatus {
                         ui.label("Guild List");
                         ui.separator();
                         ui.add_space(10.0);
+
+                        for (index, guild) in self.guild_channels.iter().enumerate() {
+                            let guild_name = &guild.guild.guild_name;
+                            let guild_image = if guild.guild.guild_icon.is_none() {
+                                let modified_name = guild_name.replace(" ", "%20");
+                                format!(
+                                    "https://api.dicebear.com/9.x/initials/png?seed={}",
+                                    modified_name
+                                )
+                            } else {
+                                guild.guild.guild_icon.clone().unwrap()
+                            };
+                            let selected = self.selected_guild == index;
+
+                            let anim_id = ui.make_persistent_id("guild_rounding_anim").with(index);
+
+                            let target_rounding = if selected { 50.0 } else { 10.0 };
+
+                            let rounding =
+                                ctx.animate_value_with_time(anim_id, target_rounding, 0.3);
+
+                            if ui
+                                .add(
+                                    ImageButton::new(
+                                        Image::from_uri(guild_image).rounding(rounding),
+                                    )
+                                    .selected(selected)
+                                    .rounding(rounding)
+                                    .frame(true),
+                                )
+                                .clicked()
+                            {
+                                self.selected_guild = index;
+                            };
+                        }
                     })
                 });
             });
     }
 
-    fn show_right_bar(&self, ctx: &Context) {
+    fn show_right_bar(&mut self, ctx: &Context) {
         SidePanel::right("right_panel").show_animated(ctx, self.show_channel, |ui| {
             ScrollArea::vertical().show(ui, |ui| {
                 ui.vertical_centered(|ui| {
@@ -103,14 +145,36 @@ impl PanelStatus {
                     ui.label("Channel List");
                     ui.separator();
                 });
-                ui.with_layout(
-                    Layout::top_down(Align::Min).with_cross_justify(true),
-                    |ui| {
-                        for _ in 0..100 {
-                            ui.label("Hello World!");
-                        }
-                    },
-                );
+                if !self.guild_channels.is_empty() {
+                    ui.with_layout(
+                        Layout::top_down(Align::Min).with_cross_justify(true),
+                        |ui| {
+                            let selected_guild = self.selected_guild;
+                            let channel_list = &self.guild_channels[selected_guild].channels;
+
+                            let all_channel_selected = self.selected_channel == 0;
+
+                            if ui
+                                .selectable_label(all_channel_selected, "All Channels")
+                                .clicked()
+                            {
+                                self.selected_channel = 0;
+                            };
+                            for (index, channel) in channel_list.iter().enumerate() {
+                                let index = index + 1;
+
+                                let channel_selected = self.selected_channel == index;
+
+                                if ui
+                                    .selectable_label(channel_selected, &channel.channel_name)
+                                    .clicked()
+                                {
+                                    self.selected_channel = index;
+                                };
+                            }
+                        },
+                    );
+                }
             });
         });
     }
@@ -146,6 +210,10 @@ impl PanelStatus {
         } else {
             self.dot_count += 1;
         }
+    }
+
+    pub fn set_guild_channels(&mut self, list: Vec<GuildWithChannels>) {
+        self.guild_channels = list;
     }
 }
 
