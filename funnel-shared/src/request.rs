@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::error::Error;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
     Authenticate(String),
     GetAllGuilds,
