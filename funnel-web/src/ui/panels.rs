@@ -19,7 +19,7 @@ pub struct PanelStatus {
     app_status: AppStatus,
     guild_channels: Vec<GuildWithChannels>,
     selected_guild: usize,
-    selected_channel: usize,
+    selected_channel: Vec<usize>,
     hovered_channel: Option<usize>,
     hovered_guild: Option<usize>,
     guild_changed: bool,
@@ -37,7 +37,7 @@ impl Default for PanelStatus {
             app_status: AppStatus::default(),
             guild_channels: Vec::new(),
             selected_guild: 0,
-            selected_channel: 0,
+            selected_channel: Vec::new(),
             hovered_channel: None,
             hovered_guild: None,
             guild_changed: false,
@@ -164,93 +164,110 @@ impl PanelStatus {
     }
 
     fn show_right_bar(&mut self, ctx: &Context) {
-        SidePanel::right("right_panel").show_animated(ctx, self.show_channel, |ui| {
-            ScrollArea::vertical().show(ui, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.add_space(5.0);
-                    ui.label("Channel List");
-                    ui.separator();
-                });
-                if !self.guild_channels.is_empty() {
-                    ui.with_layout(
-                        Layout::top_down(Align::Min).with_cross_justify(true),
-                        |ui| {
-                            let selected_guild = self.selected_guild;
-                            let channel_list = &self.guild_channels[selected_guild].channels;
+        SidePanel::right("right_panel")
+            .max_width(200.0)
+            .show_animated(ctx, self.show_channel, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    ui.vertical_centered(|ui| {
+                        ui.add_space(5.0);
+                        ui.label("Channel List");
+                        ui.separator();
+                    });
+                    if !self.guild_channels.is_empty() {
+                        ui.with_layout(
+                            Layout::top_down(Align::Min).with_cross_justify(true),
+                            |ui| {
+                                let selected_guild = self.selected_guild;
+                                let channel_list = &self.guild_channels[selected_guild].channels;
 
-                            let mut channel_name_list = vec!["All Channels"];
+                                let mut channel_name_list = vec!["All Channels"];
 
-                            for ch in channel_list {
-                                channel_name_list.push(&ch.channel_name);
-                            }
-
-                            let space_id = ui.make_persistent_id("space_id");
-
-                            if self.guild_changed {
-                                ui.ctx().animate_value_with_time(space_id, 25.0, 0.0);
-                            }
-                            let spacing = ui.ctx().animate_value_with_time(space_id, 0.0, 0.5);
-
-                            let reset_label = if self.guild_changed {
-                                self.guild_changed = false;
-                                true
-                            } else {
-                                false
-                            };
-                            for (index, channel_name) in channel_name_list.iter().enumerate() {
-                                ui.add_space(spacing);
-                                let channel_selected = self.selected_channel == index;
-
-                                let horizontal_id =
-                                    ui.make_persistent_id("channel_anim").with(index);
-                                let vertical_id =
-                                    ui.make_persistent_id("channel_anim_vertical").with(index);
-
-                                if reset_label {
-                                    ui.ctx().animate_value_with_time(vertical_id, 2.0, 0.0);
+                                for ch in channel_list {
+                                    channel_name_list.push(&ch.channel_name);
                                 }
 
-                                let resp = ui.add(AnimatedLabel::new(
-                                    channel_selected,
-                                    *channel_name,
-                                    horizontal_id,
-                                    vertical_id,
-                                ));
+                                let space_id = ui.make_persistent_id("space_id");
 
-                                let mut reset = false;
+                                if self.guild_changed {
+                                    ui.ctx().animate_value_with_time(space_id, 10.0, 0.0);
+                                }
+                                let spacing = ui.ctx().animate_value_with_time(space_id, 0.0, 0.5);
 
-                                if resp.hovered() && self.selected_channel != index {
-                                    if let Some(id) = self.hovered_channel {
-                                        if id != index {
-                                            reset = true;
-                                            self.hovered_channel = Some(index);
+                                let reset_label = if self.guild_changed {
+                                    self.guild_changed = false;
+                                    true
+                                } else {
+                                    false
+                                };
+
+                                // id for animating from a larger value to a smaller one
+                                let vertical_id_bottom =
+                                    ui.make_persistent_id("channel_anim_vertical_bottom");
+
+                                for (index, channel_name) in channel_name_list.iter().enumerate() {
+                                    ui.add_space(spacing);
+                                    let channel_selected =
+                                        self.selected_channel[self.selected_guild] == index;
+
+                                    let horizontal_id = ui
+                                        .make_persistent_id("channel_anim_horizontal")
+                                        .with(index);
+                                    let vertical_id_top = ui
+                                        .make_persistent_id("channel_anim_vertical_top")
+                                        .with(index);
+
+                                    if reset_label {
+                                        if index == self.selected_channel[self.selected_guild] {
+                                            ui.ctx().animate_value_with_time(
+                                                vertical_id_bottom,
+                                                ui.next_widget_position().y + 50.0,
+                                                0.0,
+                                            );
+                                        }
+                                        ui.ctx().animate_value_with_time(vertical_id_top, 0.0, 0.0);
+                                    }
+
+                                    let target_x = if channel_selected {
+                                        ui.available_width()
+                                    } else if let Some(id) = self.hovered_channel {
+                                        if id == index {
+                                            ui.available_width()
+                                        } else {
+                                            10.0
                                         }
                                     } else {
-                                        reset = true;
+                                        10.0
+                                    };
+
+                                    let horizontal_size =
+                                        ctx.animate_value_with_time(horizontal_id, target_x, 0.5);
+                                    let resp = ui.add(AnimatedLabel::new(
+                                        channel_selected,
+                                        *channel_name,
+                                        vertical_id_top,
+                                        vertical_id_bottom,
+                                        horizontal_size,
+                                    ));
+
+                                    if resp.hovered() && !channel_selected {
                                         self.hovered_channel = Some(index);
-                                    }
-                                } else if self.selected_channel != index {
-                                    reset = true;
-                                    if let Some(id) = self.hovered_channel {
-                                        if id == index {
-                                            self.hovered_channel = None;
+                                    } else if !channel_selected {
+                                        if let Some(id) = self.hovered_channel {
+                                            if id == index {
+                                                self.hovered_channel = None;
+                                            }
                                         }
                                     }
-                                }
 
-                                if reset {
-                                    ui.ctx().animate_value_with_time(horizontal_id, 10.0, 0.0);
+                                    if resp.clicked() {
+                                        self.selected_channel[self.selected_guild] = index;
+                                    }
                                 }
-
-                                if resp.clicked() {
-                                    self.selected_channel = index;
-                                }
-                            }
-                        },
-                    );
-                }
+                            },
+                        );
+                    }
+                });
             });
-        });
     }
 
     fn show_bottom_bar(&mut self, ctx: &Context) {
@@ -287,6 +304,9 @@ impl PanelStatus {
     }
 
     pub fn set_guild_channels(&mut self, list: Vec<GuildWithChannels>) {
+        for _ in &list {
+            self.selected_channel.push(0);
+        }
         self.guild_channels = list;
         self.guild_changed = true;
         self.reset_guild_anim = true;

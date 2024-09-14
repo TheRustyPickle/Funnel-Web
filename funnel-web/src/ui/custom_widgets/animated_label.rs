@@ -4,22 +4,25 @@ use egui::Id;
 pub struct AnimatedLabel {
     text: WidgetText,
     selected: bool,
-    horizontal_id: Id,
-    vertical_id: Id,
+    vertical_id_top: Id,
+    vertical_id_bottom: Id,
+    horizontal_size: f32,
 }
 
 impl AnimatedLabel {
     pub fn new(
         selected: bool,
         text: impl Into<WidgetText>,
-        horizontal_id: Id,
-        vertical_id: Id,
+        vertical_id_top: Id,
+        vertical_id_bottom: Id,
+        horizontal_size: f32,
     ) -> Self {
         Self {
             selected,
             text: text.into(),
-            horizontal_id,
-            vertical_id,
+            vertical_id_top,
+            vertical_id_bottom,
+            horizontal_size,
         }
     }
 }
@@ -29,32 +32,31 @@ impl Widget for AnimatedLabel {
         let Self {
             selected,
             text,
-            horizontal_id,
-            vertical_id,
+            vertical_id_top,
+            vertical_id_bottom,
+            horizontal_size,
         } = self;
 
-        // No idea what most of these do, taken from egui selectable label source
         let button_padding = ui.spacing().button_padding;
         let total_extra = button_padding + button_padding;
 
-        let wrap_width = ui.available_width() - total_extra.x;
-        let text = text.into_galley(ui, None, wrap_width, TextStyle::Button);
-
-        let max_width = ui.available_width();
-        let max_height = ui.spacing().interact_size.y;
+        let text = ui.painter().layout_no_wrap(
+            text.text().to_string(),
+            TextStyle::Button.resolve(ui.style()),
+            ui.visuals().text_color(),
+        );
 
         let mut desired_size = total_extra + text.size();
 
-        // Update x and y value of the button size by the animated value
-        // For whatever reason, x < 10.0 and y < 2.0 in the starting value freezes everything
-        desired_size.x = ui
-            .ctx()
-            .animate_value_with_time(horizontal_id, max_width, 0.3);
-        desired_size.y = ui
-            .ctx()
-            .animate_value_with_time(vertical_id, max_height, 0.5);
+        desired_size.x = horizontal_size;
 
         let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
+        let target_y = rect.top() + (rect.height() - text.size().y) / 2.0;
+
+        let y_top = ui
+            .ctx()
+            .animate_value_with_time(vertical_id_top, target_y, 0.5);
+
         response.widget_info(|| {
             WidgetInfo::selected(
                 WidgetType::SelectableLabel,
@@ -63,24 +65,39 @@ impl Widget for AnimatedLabel {
                 text.text(),
             )
         });
+
         if ui.is_rect_visible(response.rect) {
-            let text_pos = ui
+            let mut text_pos = ui
                 .layout()
                 .align_size_within_rect(text.size(), rect.shrink2(button_padding))
                 .min;
+            text_pos.y = y_top;
 
             let visuals = ui.style().interact_selectable(&response, selected);
 
-            if selected || response.highlighted() || response.has_focus() || response.hovered() {
-                let rect = rect.expand(visuals.expansion);
+            let mut background_rect = rect.expand(visuals.expansion);
 
+            if selected {
+                let y_bottom = ui
+                    .ctx()
+                    .animate_value_with_time(vertical_id_bottom, target_y, 0.5);
+                background_rect.min.y = y_bottom - button_padding.y;
+                background_rect.max.y = y_bottom + text.size().y + button_padding.y;
                 ui.painter().rect(
-                    rect,
+                    background_rect,
+                    visuals.rounding,
+                    visuals.weak_bg_fill,
+                    visuals.bg_stroke,
+                );
+            } else if response.highlighted() || response.has_focus() || response.hovered() {
+                ui.painter().rect(
+                    background_rect,
                     visuals.rounding,
                     visuals.weak_bg_fill,
                     visuals.bg_stroke,
                 );
             }
+
             ui.painter().galley(text_pos, text, visuals.text_color());
         }
 
