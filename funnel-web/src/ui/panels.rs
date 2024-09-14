@@ -3,7 +3,7 @@ use egui::{
     ScrollArea, SidePanel, Spinner, TopBottomPanel,
 };
 use funnel_shared::GuildWithChannels;
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use strum::IntoEnumIterator;
 
 use crate::core::{MainWindow, TabState};
@@ -19,7 +19,7 @@ pub struct PanelStatus {
     app_status: AppStatus,
     guild_channels: Vec<GuildWithChannels>,
     selected_guild: usize,
-    selected_channel: Vec<usize>,
+    selected_channel: Vec<HashSet<usize>>,
     hovered_channel: Option<usize>,
     hovered_guild: Option<usize>,
     guild_changed: bool,
@@ -200,24 +200,25 @@ impl PanelStatus {
                                     false
                                 };
 
-                                // id for animating from a larger value to a smaller one
-                                let vertical_id_bottom =
-                                    ui.make_persistent_id("channel_anim_vertical_bottom");
+                                let vertical_hover_top =
+                                    ui.make_persistent_id("channel_vertical_hover_top");
 
                                 for (index, channel_name) in channel_name_list.iter().enumerate() {
-                                    ui.add_space(spacing);
-                                    let channel_selected =
-                                        self.selected_channel[self.selected_guild] == index;
-
-                                    let horizontal_id = ui
-                                        .make_persistent_id("channel_anim_horizontal")
+                                    let vertical_id_bottom = ui
+                                        .make_persistent_id("channel_anim_vertical_bottom")
                                         .with(index);
+
+                                    ui.add_space(spacing);
+
+                                    let channel_selected =
+                                        self.selected_channel[self.selected_guild].contains(&index);
+
                                     let vertical_id_top = ui
                                         .make_persistent_id("channel_anim_vertical_top")
                                         .with(index);
 
                                     if reset_label {
-                                        if index == self.selected_channel[self.selected_guild] {
+                                        if channel_selected {
                                             ui.ctx().animate_value_with_time(
                                                 vertical_id_bottom,
                                                 ui.next_widget_position().y + 50.0,
@@ -227,26 +228,12 @@ impl PanelStatus {
                                         ui.ctx().animate_value_with_time(vertical_id_top, 0.0, 0.0);
                                     }
 
-                                    let target_x = if channel_selected {
-                                        ui.available_width()
-                                    } else if let Some(id) = self.hovered_channel {
-                                        if id == index {
-                                            ui.available_width()
-                                        } else {
-                                            10.0
-                                        }
-                                    } else {
-                                        10.0
-                                    };
-
-                                    let horizontal_size =
-                                        ctx.animate_value_with_time(horizontal_id, target_x, 0.5);
                                     let resp = ui.add(AnimatedLabel::new(
                                         channel_selected,
                                         *channel_name,
                                         vertical_id_top,
                                         vertical_id_bottom,
-                                        horizontal_size,
+                                        vertical_hover_top,
                                     ));
 
                                     if resp.hovered() && !channel_selected {
@@ -260,7 +247,22 @@ impl PanelStatus {
                                     }
 
                                     if resp.clicked() {
-                                        self.selected_channel[self.selected_guild] = index;
+                                        let already_selected = self.selected_channel
+                                            [self.selected_guild]
+                                            .contains(&index);
+
+                                        if already_selected {
+                                            self.selected_channel[self.selected_guild]
+                                                .remove(&index);
+                                        } else {
+                                            self.selected_channel[self.selected_guild]
+                                                .insert(index);
+                                            ui.ctx().animate_value_with_time(
+                                                vertical_id_bottom,
+                                                2.0,
+                                                0.0,
+                                            );
+                                        }
                                     }
                                 }
                             },
@@ -305,7 +307,7 @@ impl PanelStatus {
 
     pub fn set_guild_channels(&mut self, list: Vec<GuildWithChannels>) {
         for _ in &list {
-            self.selected_channel.push(0);
+            self.selected_channel.push(HashSet::new());
         }
         self.guild_channels = list;
         self.guild_changed = true;
