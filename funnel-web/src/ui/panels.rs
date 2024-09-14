@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 use strum::IntoEnumIterator;
 
 use crate::core::{MainWindow, TabState};
-use crate::ui::DateNavigator;
+use crate::ui::{AnimatedLabel, DateNavigator};
 use crate::{AppEvent, AppStatus};
 
 pub struct PanelStatus {
@@ -20,6 +20,10 @@ pub struct PanelStatus {
     guild_channels: Vec<GuildWithChannels>,
     selected_guild: usize,
     selected_channel: usize,
+    hovered_channel: Option<usize>,
+    hovered_guild: Option<usize>,
+    guild_changed: bool,
+    reset_guild_anim: bool,
 }
 
 impl Default for PanelStatus {
@@ -34,6 +38,10 @@ impl Default for PanelStatus {
             guild_channels: Vec::new(),
             selected_guild: 0,
             selected_channel: 0,
+            hovered_channel: None,
+            hovered_guild: None,
+            guild_changed: false,
+            reset_guild_anim: false,
         }
     }
 }
@@ -113,24 +121,42 @@ impl PanelStatus {
 
                             let anim_id = ui.make_persistent_id("guild_rounding_anim").with(index);
 
-                            let target_rounding = if selected { 50.0 } else { 10.0 };
+                            if self.reset_guild_anim {
+                                ctx.animate_value_with_time(anim_id, 10.0, 0.0);
+                                self.reset_guild_anim = false;
+                            }
+
+                            let target_rounding = if selected {
+                                25.0
+                            } else if let Some(id) = self.hovered_guild {
+                                if id == index {
+                                    20.0
+                                } else {
+                                    10.0
+                                }
+                            } else {
+                                10.0
+                            };
 
                             let rounding =
-                                ctx.animate_value_with_time(anim_id, target_rounding, 0.3);
+                                ctx.animate_value_with_time(anim_id, target_rounding, 0.5);
 
-                            if ui
+                            let resp = ui
                                 .add(
-                                    ImageButton::new(
-                                        Image::from_uri(guild_image).rounding(rounding),
-                                    )
-                                    .selected(selected)
-                                    .rounding(rounding)
-                                    .frame(true),
+                                    ImageButton::new(Image::from_uri(guild_image))
+                                        .selected(selected)
+                                        .rounding(rounding),
                                 )
-                                .clicked()
-                            {
+                                .on_hover_text(guild_name);
+
+                            if resp.hovered() {
+                                self.hovered_guild = Some(index);
+                            }
+
+                            if resp.clicked() {
                                 self.selected_guild = index;
-                            };
+                                self.guild_changed = true;
+                            }
                         }
                     })
                 });
@@ -152,25 +178,58 @@ impl PanelStatus {
                             let selected_guild = self.selected_guild;
                             let channel_list = &self.guild_channels[selected_guild].channels;
 
-                            let all_channel_selected = self.selected_channel == 0;
+                            let mut channel_name_list = vec!["All Channels"];
 
-                            if ui
-                                .selectable_label(all_channel_selected, "All Channels")
-                                .clicked()
-                            {
-                                self.selected_channel = 0;
-                            };
-                            for (index, channel) in channel_list.iter().enumerate() {
-                                let index = index + 1;
+                            for ch in channel_list {
+                                channel_name_list.push(&ch.channel_name);
+                            }
 
+                            for (index, channel_name) in channel_name_list.iter().enumerate() {
                                 let channel_selected = self.selected_channel == index;
+                                let horizontal_id =
+                                    ui.make_persistent_id("channel_anim").with(index);
+                                let vertical_id =
+                                    ui.make_persistent_id("channel_anim_vertical").with(index);
 
-                                if ui
-                                    .selectable_label(channel_selected, &channel.channel_name)
-                                    .clicked()
-                                {
+                                if self.guild_changed {
+                                    self.guild_changed = false;
+                                    ui.ctx().animate_value_with_time(vertical_id, 2.0, 0.0);
+                                }
+
+                                let resp = ui.add(AnimatedLabel::new(
+                                    channel_selected,
+                                    *channel_name,
+                                    horizontal_id,
+                                    vertical_id,
+                                ));
+                                let mut reset = false;
+
+                                if resp.hovered() && self.selected_channel != index {
+                                    if let Some(id) = self.hovered_channel {
+                                        if id != index {
+                                            reset = true;
+                                            self.hovered_channel = Some(index);
+                                        }
+                                    } else {
+                                        reset = true;
+                                        self.hovered_channel = Some(index);
+                                    }
+                                } else if self.selected_channel != index {
+                                    reset = true;
+                                    if let Some(id) = self.hovered_channel {
+                                        if id == index {
+                                            self.hovered_channel = None;
+                                        }
+                                    }
+                                }
+
+                                if reset {
+                                    ui.ctx().animate_value_with_time(horizontal_id, 10.0, 0.0);
+                                }
+
+                                if resp.clicked() {
                                     self.selected_channel = index;
-                                };
+                                }
                             }
                         },
                     );
@@ -214,6 +273,8 @@ impl PanelStatus {
 
     pub fn set_guild_channels(&mut self, list: Vec<GuildWithChannels>) {
         self.guild_channels = list;
+        self.guild_changed = true;
+        self.reset_guild_anim = true;
     }
 }
 
