@@ -1,5 +1,4 @@
-use egui::{Align, Button, Context, Grid, Key, Layout, TextEdit, Ui, Vec2};
-use log::info;
+use egui::{Align, Button, Grid, Key, Layout, TextEdit, Ui, Vec2};
 use std::collections::VecDeque;
 
 use crate::core::{get_new_x, MainWindow};

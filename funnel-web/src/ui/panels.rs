@@ -184,15 +184,29 @@ impl PanelStatus {
                                 channel_name_list.push(&ch.channel_name);
                             }
 
+                            let space_id = ui.make_persistent_id("space_id");
+
+                            if self.guild_changed {
+                                ui.ctx().animate_value_with_time(space_id, 25.0, 0.0);
+                            }
+                            let spacing = ui.ctx().animate_value_with_time(space_id, 0.0, 0.5);
+
+                            let reset_label = if self.guild_changed {
+                                self.guild_changed = false;
+                                true
+                            } else {
+                                false
+                            };
                             for (index, channel_name) in channel_name_list.iter().enumerate() {
+                                ui.add_space(spacing);
                                 let channel_selected = self.selected_channel == index;
+
                                 let horizontal_id =
                                     ui.make_persistent_id("channel_anim").with(index);
                                 let vertical_id =
                                     ui.make_persistent_id("channel_anim_vertical").with(index);
 
-                                if self.guild_changed {
-                                    self.guild_changed = false;
+                                if reset_label {
                                     ui.ctx().animate_value_with_time(vertical_id, 2.0, 0.0);
                                 }
 
@@ -202,6 +216,7 @@ impl PanelStatus {
                                     horizontal_id,
                                     vertical_id,
                                 ));
+
                                 let mut reset = false;
 
                                 if resp.hovered() && self.selected_channel != index {
