@@ -4,10 +4,10 @@ use egui::{
 };
 use funnel_shared::GuildWithChannels;
 use std::collections::{HashSet, VecDeque};
-use strum::IntoEnumIterator;
+use strum::{EnumCount, IntoEnumIterator};
 
 use crate::core::{MainWindow, TabState};
-use crate::ui::{AnimatedLabel, DateNavigator};
+use crate::ui::{AnimatedLabel, AnimatedMenuLabel, DateNavigator};
 use crate::{AppEvent, AppStatus};
 
 pub struct PanelStatus {
@@ -15,15 +15,15 @@ pub struct PanelStatus {
     show_guild: bool,
     show_channel: bool,
     dot_count: usize,
-    date_nav: DateNavigator,
+    date_nav: Vec<DateNavigator>,
     app_status: AppStatus,
     guild_channels: Vec<GuildWithChannels>,
     selected_guild: usize,
     selected_channel: Vec<HashSet<usize>>,
-    hovered_channel: Option<usize>,
     hovered_guild: Option<usize>,
     guild_changed: bool,
     reset_guild_anim: bool,
+    top_button_size: f32,
 }
 
 impl Default for PanelStatus {
@@ -33,21 +33,21 @@ impl Default for PanelStatus {
             show_guild: true,
             show_channel: true,
             dot_count: 0,
-            date_nav: DateNavigator::default(),
+            date_nav: vec![DateNavigator::default()],
             app_status: AppStatus::default(),
             guild_channels: Vec::new(),
             selected_guild: 0,
             selected_channel: Vec::new(),
-            hovered_channel: None,
             hovered_guild: None,
             guild_changed: false,
             reset_guild_anim: false,
+            top_button_size: 0.0,
         }
     }
 }
 
 impl PanelStatus {
-    fn show_upper_bar(&mut self, ctx: &Context, events: &mut VecDeque<AppEvent>) {
+    fn show_upper_bar(&mut self, ctx: &Context, pass_authenticated: bool, events: &mut VecDeque<AppEvent>) {
         TopBottomPanel::top("upper_bar")
             .show_separator_line(false)
             .show(ctx, |ui| {
@@ -71,7 +71,7 @@ impl PanelStatus {
                         self.show_channel = !self.show_channel;
                     };
                     ui.separator();
-                    self.date_nav.show_ui(ui, events);
+                    self.date_nav[self.selected_guild].show_ui(ui, pass_authenticated, events);
                 });
 
                 ui.add_space(0.5);
@@ -82,15 +82,43 @@ impl PanelStatus {
         TopBottomPanel::top("top_panel")
             .show_separator_line(false)
             .show(ctx, |ui| {
-                ui.add_space(4.0);
+                ui.add_space(5.0);
                 menu::bar(ui, |ui| {
+                    ui.set_style(ctx.style());
+
+                    if self.top_button_size != 0.0 {
+                        let max_size = ui.available_width();
+                        let space_taken = TabState::COUNT as f32 * self.top_button_size;
+                        let remaining = max_size - space_taken;
+                        ui.add_space(remaining / 2.0);
+                    }
+                    let hover_position = ui.make_persistent_id("menu_hover");
+                    let selected_position = ui.make_persistent_id("menu_selected");
                     for val in TabState::iter() {
                         let val_string = val.to_string();
-                        ui.selectable_value(&mut self.tab_state, val, val_string);
-                        ui.separator();
+                        let selected = self.tab_state == val;
+
+                        let first_value = val == TabState::first_value();
+
+                        let remaining_width = ui.available_width();
+                        let resp = ui.add(AnimatedMenuLabel::new(
+                            selected,
+                            val_string,
+                            selected_position,
+                            hover_position,
+                            100.0,
+                            20.0,
+                            (first_value, true),
+                        ));
+                        let space_taken = remaining_width - ui.available_width();
+                        self.top_button_size = space_taken;
+
+                        if resp.clicked() {
+                            self.tab_state = val;
+                        }
                     }
                 });
-                ui.add_space(1.0);
+                ui.add_space(4.0);
             });
     }
 
@@ -167,7 +195,7 @@ impl PanelStatus {
         SidePanel::right("right_panel")
             .max_width(200.0)
             .show_animated(ctx, self.show_channel, |ui| {
-                ScrollArea::vertical().show(ui, |ui| {
+                ScrollArea::vertical().drag_to_scroll(false).show(ui, |ui| {
                     ui.vertical_centered(|ui| {
                         ui.add_space(5.0);
                         ui.label("Channel List");
@@ -200,50 +228,44 @@ impl PanelStatus {
                                     false
                                 };
 
-                                let vertical_hover_top =
-                                    ui.make_persistent_id("channel_vertical_hover_top");
+                                // The id where value of the current hover psotion is saved
+                                let hover_position = ui.make_persistent_id("channel_hover_anim");
 
                                 for (index, channel_name) in channel_name_list.iter().enumerate() {
-                                    let vertical_id_bottom = ui
-                                        .make_persistent_id("channel_anim_vertical_bottom")
-                                        .with(index);
+                                    // The selection UI position, animate toward the current
+                                    // position from either the top or the bottom
+                                    let selection_position =
+                                        ui.make_persistent_id("channel_selection_anim").with(index);
 
                                     ui.add_space(spacing);
 
                                     let channel_selected =
                                         self.selected_channel[self.selected_guild].contains(&index);
 
-                                    let vertical_id_top = ui
-                                        .make_persistent_id("channel_anim_vertical_top")
-                                        .with(index);
-
-                                    if reset_label {
-                                        if channel_selected {
-                                            ui.ctx().animate_value_with_time(
-                                                vertical_id_bottom,
-                                                ui.next_widget_position().y + 50.0,
-                                                0.0,
-                                            );
-                                        }
-                                        ui.ctx().animate_value_with_time(vertical_id_top, 0.0, 0.0);
-                                    }
+                                    // The text position. Animate from the current position from
+                                    // either the top or the bottom
+                                    let text_position =
+                                        ui.make_persistent_id("text_position_anim").with(index);
 
                                     let resp = ui.add(AnimatedLabel::new(
                                         channel_selected,
                                         *channel_name,
-                                        vertical_id_top,
-                                        vertical_id_bottom,
-                                        vertical_hover_top,
+                                        text_position,
+                                        selection_position,
+                                        hover_position,
                                     ));
 
-                                    if resp.hovered() && !channel_selected {
-                                        self.hovered_channel = Some(index);
-                                    } else if !channel_selected {
-                                        if let Some(id) = self.hovered_channel {
-                                            if id == index {
-                                                self.hovered_channel = None;
-                                            }
-                                        }
+                                    if reset_label {
+                                        ui.ctx().animate_value_with_time(
+                                            selection_position,
+                                            ui.max_rect().top(),
+                                            0.0,
+                                        );
+                                        ui.ctx().animate_value_with_time(
+                                            text_position,
+                                            ui.max_rect().top(),
+                                            0.0,
+                                        );
                                     }
 
                                     if resp.clicked() {
@@ -257,11 +279,28 @@ impl PanelStatus {
                                         } else {
                                             self.selected_channel[self.selected_guild]
                                                 .insert(index);
-                                            ui.ctx().animate_value_with_time(
-                                                vertical_id_bottom,
-                                                2.0,
-                                                0.0,
-                                            );
+                                            let available_rect = ui.max_rect();
+                                            let rect_center = available_rect.center().y;
+
+                                            let current_point = ui
+                                                .ctx()
+                                                .input(|i| i.pointer.hover_pos())
+                                                .unwrap()
+                                                .y;
+
+                                            if current_point > rect_center {
+                                                ui.ctx().animate_value_with_time(
+                                                    selection_position,
+                                                    available_rect.bottom(),
+                                                    0.0,
+                                                );
+                                            } else {
+                                                ui.ctx().animate_value_with_time(
+                                                    selection_position,
+                                                    available_rect.top(),
+                                                    0.0,
+                                                );
+                                            }
                                         }
                                     }
                                 }
@@ -306,18 +345,21 @@ impl PanelStatus {
     }
 
     pub fn set_guild_channels(&mut self, list: Vec<GuildWithChannels>) {
+        let mut date_list = vec![];
         for _ in &list {
+            date_list.push(DateNavigator::default());
             self.selected_channel.push(HashSet::new());
         }
         self.guild_channels = list;
         self.guild_changed = true;
         self.reset_guild_anim = true;
+        self.date_nav = date_list;
     }
 }
 
 impl MainWindow {
     pub fn show_panels(&mut self, ctx: &Context) {
-        self.panels.show_upper_bar(ctx, &mut self.events);
+        self.panels.show_upper_bar(ctx, self.password.pass_authenticated(), &mut self.events);
         self.panels.show_left_bar(ctx);
         self.panels.show_right_bar(ctx);
         self.panels.show_bottom_bar(ctx);

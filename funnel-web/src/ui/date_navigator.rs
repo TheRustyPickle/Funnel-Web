@@ -1,11 +1,11 @@
 use chrono::{Days, Months};
-use egui::Ui;
+use egui::{Button, Key, Ui};
 use egui_extras::DatePickerButton;
 use std::collections::VecDeque;
 use strum::IntoEnumIterator;
 
 use crate::core::NavigationType;
-use crate::ui::DatePickerHandler;
+use crate::ui::{AnimatedMenuLabel, DatePickerHandler};
 use crate::AppEvent;
 
 #[derive(Default)]
@@ -15,48 +15,95 @@ pub struct DateNavigator {
 }
 
 impl DateNavigator {
-    pub fn show_ui(&mut self, ui: &mut Ui, events: &mut VecDeque<AppEvent>) {
+    pub fn show_ui(
+        &mut self,
+        ui: &mut Ui,
+        pass_authenticated: bool,
+        events: &mut VecDeque<AppEvent>,
+    ) {
         ui.label("From:");
-        ui.add(DatePickerButton::new(self.handler.from()).id_source("1"));
+        ui.add_enabled(
+            pass_authenticated,
+            DatePickerButton::new(self.handler.from()).id_source("1"),
+        );
         ui.label("To:");
-        ui.add(DatePickerButton::new(self.handler.to()).id_source("2"));
+        ui.add_enabled(
+            pass_authenticated,
+            DatePickerButton::new(self.handler.to()).id_source("2"),
+        );
 
-        if ui.button("Reset").clicked() {
+        if ui
+            .add_enabled(pass_authenticated, Button::new("Reset"))
+            .clicked()
+        {
             events.push_back(AppEvent::DateChanged);
             self.handler.reset_dates();
         }
 
         ui.separator();
 
+        let hover_position = ui.make_persistent_id("navigation_hover");
+        let selected_position = ui.make_persistent_id("navigation_selected");
         for val in NavigationType::iter() {
             let val_string = val.to_string();
-            ui.selectable_value(self.nav_type(), val, val_string);
+            let selected = self.nav_type == val;
+
+            let resp = ui.add(AnimatedMenuLabel::new(
+                selected,
+                val_string,
+                selected_position,
+                hover_position,
+                43.0,
+                18.0,
+                (false, false),
+            ));
+
+            if resp.clicked() {
+                self.nav_type = val;
+            }
         }
 
         ui.separator();
 
-        // TODO: add shortcut
+        let mut shift_pressed = false;
+        let mut h_pressed = false;
+        let mut l_pressed = false;
+
+        if pass_authenticated {
+            shift_pressed = ui.ctx().input(|i| i.modifiers.shift);
+            h_pressed = ui.ctx().input(|i| i.key_pressed(Key::H));
+            l_pressed = ui.ctx().input(|i| i.key_pressed(Key::L));
+        }
+
         let previous_hover = format!(
-            "Go back by 1 {} from the current date. Shortcut key: CTRL + H",
+            "Go back by 1 {} from the current date. Shortcut key: SHIFT + H",
             self.nav_name()
         );
         let next_hover = format!(
-            "Go next by 1 {} from the current date. Shortcut key: CTRL + L",
+            "Go next by 1 {} from the current date. Shortcut key: SHIFT + L",
             self.nav_name()
         );
 
         if ui
-            .button(format!("Previous {}", self.nav_name()))
+            .add_enabled(
+                pass_authenticated,
+                Button::new(format!("Previous {}", self.nav_name())),
+            )
             .on_hover_text(previous_hover)
             .clicked()
+            || shift_pressed && h_pressed
         {
             self.go_previous();
         };
 
         if ui
-            .button(format!("Next {}", self.nav_name()))
+            .add_enabled(
+                pass_authenticated,
+                Button::new(format!("Next {}", self.nav_name())),
+            )
             .on_hover_text(next_hover)
             .clicked()
+            || shift_pressed && l_pressed
         {
             self.go_next();
         };

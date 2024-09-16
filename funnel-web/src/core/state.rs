@@ -1,8 +1,9 @@
-use strum_macros::{Display, EnumIter};
+use strum_macros::{Display, EnumCount, EnumIter};
 
-#[derive(Default, Eq, PartialEq, Display, EnumIter, Clone, Copy)]
+#[derive(Default, Eq, PartialEq, Display, EnumIter, Clone, Copy, EnumCount)]
 pub enum TabState {
     #[default]
+    Overview,
     #[strum(to_string = "User Table")]
     UserTable,
     #[strum(to_string = "Channel Table")]
@@ -13,6 +14,16 @@ pub enum TabState {
     MemberChart,
     #[strum(to_string = "Common Words")]
     CommonWords,
+}
+
+impl TabState {
+    pub fn last_value() -> Self {
+        TabState::CommonWords
+    }
+
+    pub fn first_value() -> Self {
+        TabState::default()
+    }
 }
 
 #[derive(Default, Eq, PartialEq, Display, EnumIter)]
