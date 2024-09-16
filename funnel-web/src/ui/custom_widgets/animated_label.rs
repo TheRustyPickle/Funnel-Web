@@ -4,8 +4,8 @@ use egui::Id;
 pub struct AnimatedLabel {
     text: WidgetText,
     selected: bool,
-    vertical_id_top: Id,
-    vertical_id_bottom: Id,
+    text_position: Id,
+    selection_position: Id,
     hover_position: Id,
 }
 
@@ -13,15 +13,15 @@ impl AnimatedLabel {
     pub fn new(
         selected: bool,
         text: impl Into<WidgetText>,
-        vertical_id_top: Id,
-        vertical_id_bottom: Id,
+        text_position: Id,
+        selection_position: Id,
         hover_position: Id,
     ) -> Self {
         Self {
             selected,
             text: text.into(),
-            vertical_id_top,
-            vertical_id_bottom,
+            text_position,
+            selection_position,
             hover_position,
         }
     }
@@ -32,8 +32,8 @@ impl Widget for AnimatedLabel {
         let Self {
             selected,
             text,
-            vertical_id_top,
-            vertical_id_bottom,
+            text_position,
+            selection_position,
             hover_position,
         } = self;
 
@@ -53,9 +53,11 @@ impl Widget for AnimatedLabel {
         let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
         let target_y = rect.top() + (rect.height() - text_galley.size().y) / 2.0;
 
-        let y_top = ui
+        // When a new guild is selected, everything starts from y 0.0. Animate going from 0.0 to
+        // the appropriate position
+        let text_position = ui
             .ctx()
-            .animate_value_with_time(vertical_id_top, target_y, 0.5);
+            .animate_value_with_time(text_position, target_y, 0.5);
 
         response.widget_info(|| {
             WidgetInfo::selected(
@@ -77,23 +79,24 @@ impl Widget for AnimatedLabel {
             // y value will remain as it is but if the right bar is resized, make the animation
             // smoother by modifying x value
             let val = ui.ctx().animate_value_with_time(text_x, text_pos.x, 0.5);
-            text_pos.y = y_top;
+            text_pos.y = text_position;
             text_pos.x = val;
 
+            // Color of the widget. Blue if selected, otherwise transparent grayish color
             let visuals = ui.style().interact_selectable(&response, selected);
 
+            // The rect that is the shown when either hovering/selected
             let mut background_rect = rect.expand(visuals.expansion);
 
-            let mut blend_factor = 0.0;
-
             if selected {
+                // Make the blue colored rect animated from previous position to the current
+                // selected one.
                 let y_bottom = ui
                     .ctx()
-                    .animate_value_with_time(vertical_id_bottom, target_y, 0.5);
+                    .animate_value_with_time(selection_position, target_y, 0.5);
                 background_rect.min.y = y_bottom - button_padding.y;
                 background_rect.max.y = y_bottom + text_galley.size().y + button_padding.y;
 
-                // Render background for the selected state
                 ui.painter().rect(
                     background_rect,
                     visuals.rounding,
@@ -103,27 +106,14 @@ impl Widget for AnimatedLabel {
             }
 
             if response.highlighted() || response.has_focus() || response.hovered() {
+                // Make the transparent colored rect animated from previous position to the current
+                // hovering one.
                 let y = ui
                     .ctx()
                     .animate_value_with_time(hover_position, target_y, 0.5);
 
-                // Only apply blend factor if the hovered item is also selected
-                if selected {
-                    blend_factor = ui.ctx().animate_value_with_time(
-                        ui.make_persistent_id("blend_factor"),
-                        1.0,
-                        0.5,
-                    );
-                }
-
-                let blended_y = if selected {
-                    blend_factor * y + (1.0 - blend_factor) * target_y
-                } else {
-                    y
-                };
-
-                background_rect.min.y = blended_y - button_padding.y;
-                background_rect.max.y = blended_y + text_galley.size().y + button_padding.y;
+                background_rect.min.y = y - button_padding.y;
+                background_rect.max.y = y + text_galley.size().y + button_padding.y;
 
                 ui.painter().rect(
                     background_rect,
@@ -132,6 +122,7 @@ impl Widget for AnimatedLabel {
                     visuals.bg_stroke,
                 );
             }
+            // Add the text
             ui.painter()
                 .galley(text_pos, text_galley, visuals.text_color());
         }
