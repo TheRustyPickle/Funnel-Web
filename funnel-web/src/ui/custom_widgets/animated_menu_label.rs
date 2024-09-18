@@ -1,5 +1,5 @@
-use eframe::egui::{Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType};
-use egui::Id;
+use egui::{Id, LayerId, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType};
+use egui::Order::Foreground;
 
 pub struct AnimatedMenuLabel {
     text: WidgetText,
@@ -68,10 +68,11 @@ impl Widget for AnimatedMenuLabel {
         // The y values for the separator
         let separator_y_1 = rect.min.y - 10.0;
         let separator_y_2 = rect.max.y + 10.0;
+
         if separator_left {
             // We draw the separator manually as ui.separator() creates a new rect that cause
             // stuttering in the UI
-            // For whatever reason 4.0 is the magic number is maintains correct x distance between
+            // For whatever reason 4.0 is the magic number that maintains correct x distance between
             // the widgets. Or at least close to that.
             let stroke = ui.visuals().widgets.noninteractive.bg_stroke;
             ui.painter()
@@ -111,6 +112,8 @@ impl Widget for AnimatedMenuLabel {
                 background_rect.min.y -= remaining / 2.0;
                 background_rect.max.y += remaining / 2.0;
             } else {
+                // Hard coded value, not sure what caused them to be different in my case.
+                // Determined by manually testing
                 background_rect.min.y = separator_y_1 + 5.0;
                 background_rect.max.y = separator_y_2 - 4.0;
             }
@@ -143,8 +146,8 @@ impl Widget for AnimatedMenuLabel {
                     .animate_value_with_time(hover_position, target_x, 0.5);
 
                 // Enfoce x value in the widget so each of them is the same size
-                background_rect.min.x = x_hover - button_padding.x - 5.0;
-                background_rect.max.x = x_hover + text_galley.size().x + button_padding.x + 5.0;
+                background_rect.min.x = x_hover - button_padding.x;
+                background_rect.max.x = x_hover + text_galley.size().x + button_padding.x;
 
                 let rect_difference = background_rect.max.x - background_rect.min.x;
                 let remaining = x_size - rect_difference;
@@ -160,7 +163,10 @@ impl Widget for AnimatedMenuLabel {
                 );
             }
 
+            // Add the text. Prevent the text from being drawn in the background.
             ui.painter()
+                .clone()
+                .with_layer_id(LayerId::new(Foreground, Id::new("text_layer")))
                 .galley(text_pos, text_galley, visuals.text_color());
 
             if separator_right {

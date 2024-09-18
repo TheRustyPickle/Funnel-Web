@@ -1,5 +1,7 @@
-use eframe::egui::{Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType};
-use egui::Id;
+use egui::Order::Foreground;
+use egui::{
+    Id, LayerId, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType,
+};
 
 pub struct AnimatedLabel {
     text: WidgetText,
@@ -122,8 +124,11 @@ impl Widget for AnimatedLabel {
                     visuals.bg_stroke,
                 );
             }
-            // Add the text
+
+            // Add the text. Prevent the text from being drawn in the background.
             ui.painter()
+                .clone()
+                .with_layer_id(LayerId::new(Foreground, Id::new("text_layer")))
                 .galley(text_pos, text_galley, visuals.text_color());
         }
 
