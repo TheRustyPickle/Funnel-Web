@@ -1,6 +1,5 @@
-use egui::Order::Foreground;
 use egui::{
-    Id, LayerId, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType,
+    Id, LayerId, Order, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType,
 };
 
 pub struct AnimatedLabel {
@@ -128,7 +127,7 @@ impl Widget for AnimatedLabel {
             // Add the text. Prevent the text from being drawn in the background.
             ui.painter()
                 .clone()
-                .with_layer_id(LayerId::new(Foreground, Id::new("text_layer")))
+                .with_layer_id(LayerId::new(Order::Background, Id::new("text_layer")))
                 .galley(text_pos, text_galley, visuals.text_color());
         }
 

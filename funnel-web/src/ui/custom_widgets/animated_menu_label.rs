@@ -1,5 +1,7 @@
-use egui::{Id, LayerId, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType};
-use egui::Order::Foreground;
+use egui::{
+    Id, LayerId, Order, Response, Sense, TextStyle, Ui, Vec2, Widget, WidgetInfo, WidgetText,
+    WidgetType,
+};
 
 pub struct AnimatedMenuLabel {
     text: WidgetText,
@@ -50,18 +52,9 @@ impl Widget for AnimatedMenuLabel {
         let (separator_left, separator_right) = separator_position;
 
         let button_padding = ui.spacing().button_padding;
-        let total_extra = button_padding + button_padding;
-
-        let text_galley = ui.painter().layout_no_wrap(
-            text.text().to_string(),
-            TextStyle::Button.resolve(ui.style()),
-            ui.visuals().text_color(),
-        );
 
         // Force the given size so the selected/hovering rect does not have to resize each time
-        let mut desired_size = total_extra + text_galley.size();
-        desired_size.y = y_size;
-        desired_size.x = x_size;
+        let desired_size = Vec2::new(x_size, y_size);
 
         let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
 
@@ -88,15 +81,21 @@ impl Widget for AnimatedMenuLabel {
         });
 
         if ui.is_rect_visible(response.rect) {
+            // Color of the widget. Blue if selected, otherwise transparent grayish color
+            let visuals = ui.style().interact_selectable(&response, selected);
+
+            let text_galley = ui.painter().layout_no_wrap(
+                text.text().to_string(),
+                TextStyle::Button.resolve(ui.style()),
+                visuals.text_color(),
+            );
+
             let text_pos = ui
                 .layout()
                 .align_size_within_rect(text_galley.size(), rect.shrink2(button_padding))
                 .min;
 
             let target_x = rect.left() + (rect.width() - text_galley.size().x) / 2.0;
-
-            // Color of the widget. Blue if selected, otherwise transparent grayish color
-            let visuals = ui.style().interact_selectable(&response, selected);
 
             // The rect that is the shown when either hovering/selected
             let mut background_rect = rect.expand(visuals.expansion);
@@ -166,7 +165,7 @@ impl Widget for AnimatedMenuLabel {
             // Add the text. Prevent the text from being drawn in the background.
             ui.painter()
                 .clone()
-                .with_layer_id(LayerId::new(Foreground, Id::new("text_layer")))
+                .with_layer_id(LayerId::new(Order::Background, Id::new("text_layer")))
                 .galley(text_pos, text_galley, visuals.text_color());
 
             if separator_right {

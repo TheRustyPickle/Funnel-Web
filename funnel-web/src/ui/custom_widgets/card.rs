@@ -1,4 +1,4 @@
-use egui::{Align2, Color32, Response, Stroke, TextStyle, Vec2, Widget, WidgetText};
+use egui::{Align2, Response, Sense, TextStyle, Vec2, Widget, WidgetText};
 
 pub struct Card {
     header: WidgetText,
@@ -31,20 +31,26 @@ impl Widget for Card {
             x_size,
             y_size,
         } = self;
-        let card_padding = Vec2::new(10.0, 10.0); // Padding around the text
-        let header_padding = Vec2::new(5.0, 5.0); // Padding for the header
-
-        let header_galley =
-            header.into_galley(ui, None, x_size, TextStyle::Button.resolve(ui.style()));
-
-        let content_galley =
-            content.into_galley(ui, None, x_size, TextStyle::Button.resolve(ui.style()));
+        let card_padding = Vec2::new(10.0, 10.0);
+        let header_padding = Vec2::new(5.0, 5.0);
 
         let total_size = Vec2::new(x_size, y_size);
 
-        let (rect, response) = ui.allocate_at_least(total_size, egui::Sense::click());
+        let (rect, response) = ui.allocate_exact_size(total_size, Sense::click());
 
         let visuals = ui.style().noninteractive();
+
+        let header_galley = ui.painter().layout_no_wrap(
+            header.text().to_string(),
+            TextStyle::Heading.resolve(ui.style()),
+            visuals.text_color(),
+        );
+
+        let content_galley = ui.painter().layout_no_wrap(
+            content.text().to_string(),
+            TextStyle::Heading.resolve(ui.style()),
+            visuals.text_color(),
+        );
 
         let rounding = 10.0;
         ui.painter()
