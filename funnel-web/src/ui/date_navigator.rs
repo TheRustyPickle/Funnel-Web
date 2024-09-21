@@ -1,12 +1,11 @@
 use chrono::{Days, Months};
 use egui::{Button, Key, Ui};
 use egui_extras::DatePickerButton;
-use std::collections::VecDeque;
 use strum::IntoEnumIterator;
 
 use crate::core::NavigationType;
 use crate::ui::{AnimatedMenuLabel, DatePickerHandler};
-use crate::AppEvent;
+use crate::{AppEvent, EventBus};
 
 #[derive(Default)]
 pub struct DateNavigator {
@@ -15,12 +14,7 @@ pub struct DateNavigator {
 }
 
 impl DateNavigator {
-    pub fn show_ui(
-        &mut self,
-        ui: &mut Ui,
-        pass_authenticated: bool,
-        events: &mut VecDeque<AppEvent>,
-    ) {
+    pub fn show_ui(&mut self, ui: &mut Ui, pass_authenticated: bool, event_bus: &mut EventBus) {
         ui.label("From:");
         ui.add_enabled(
             pass_authenticated,
@@ -36,7 +30,7 @@ impl DateNavigator {
             .add_enabled(pass_authenticated, Button::new("Reset"))
             .clicked()
         {
-            events.push_back(AppEvent::DateChanged);
+            event_bus.publish(AppEvent::DateChanged);
             self.handler.reset_dates();
         }
 
@@ -109,8 +103,67 @@ impl DateNavigator {
         };
 
         if self.handler.check_date_change() {
-            events.push_back(AppEvent::DateChanged);
+            event_bus.publish(AppEvent::DateChanged);
         }
+    }
+
+    pub fn show_ui_compare(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
+        ui.label("From:");
+        ui.add(DatePickerButton::new(self.handler.from()).id_source("3"));
+        ui.label("To:");
+        ui.add(DatePickerButton::new(self.handler.to()).id_source("4"));
+
+        if ui
+            .add(Button::new("Compare"))
+            .on_hover_text("Compare data from within this period with the current overview data")
+            .clicked()
+        {
+            event_bus.publish(AppEvent::CompareDate);
+        }
+
+        ui.separator();
+
+        let hover_position = ui.make_persistent_id("compare_navigation_hover");
+        let selected_position = ui.make_persistent_id("compare_navigation_selected");
+        for val in NavigationType::iter() {
+            let val_string = val.to_string();
+            let selected = self.nav_type == val;
+
+            let resp = ui.add(AnimatedMenuLabel::new(
+                selected,
+                val_string,
+                selected_position,
+                hover_position,
+                43.0,
+                18.0,
+                (false, false),
+            ));
+
+            if resp.clicked() {
+                self.nav_type = val;
+            }
+        }
+
+        ui.separator();
+
+        let previous_hover = format!("Go back by 1 {} from the current date.", self.nav_name());
+        let next_hover = format!("Go next by 1 {} from the current date.", self.nav_name());
+
+        if ui
+            .add(Button::new(format!("Previous {}", self.nav_name())))
+            .on_hover_text(previous_hover)
+            .clicked()
+        {
+            self.go_previous();
+        };
+
+        if ui
+            .add(Button::new(format!("Next {}", self.nav_name())))
+            .on_hover_text(next_hover)
+            .clicked()
+        {
+            self.go_next();
+        };
     }
     /// Handler and mutable
     pub fn handler(&mut self) -> &mut DatePickerHandler {

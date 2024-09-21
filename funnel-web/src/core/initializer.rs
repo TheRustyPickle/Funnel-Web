@@ -6,19 +6,17 @@ use ewebsock::{WsReceiver, WsSender};
 use funnel_shared::Request;
 use gloo_worker::{Spawnable, WorkerBridge};
 use std::cell::Cell;
-use std::collections::VecDeque;
 use std::rc::Rc;
 
-use crate::ui::{DateNavigator, PanelStatus, PasswordStatus, TabHandler};
+use crate::ui::{PanelStatus, PasswordStatus, TabHandler};
 use crate::web_worker::{WebWorker, WorkerMessage};
-use crate::AppEvent;
+use crate::EventBus;
 
 pub struct MainWindow {
     pub password: PasswordStatus,
     pub panels: PanelStatus,
-    pub date_nav: DateNavigator,
     pub tabs: TabHandler,
-    pub events: VecDeque<AppEvent>,
+    pub event_bus: EventBus,
     pub bridge: Option<WorkerBridge<WebWorker>>,
     pub data_update: Option<Rc<Cell<Option<WorkerMessage>>>>,
     pub ws_sender: Option<WsSender>,
@@ -58,9 +56,8 @@ impl MainWindow {
         Self {
             password: PasswordStatus::default(),
             panels: PanelStatus::default(),
-            date_nav: DateNavigator::default(),
             tabs: TabHandler::default(),
-            events: VecDeque::new(),
+            event_bus: EventBus::default(),
             bridge: Some(bridge),
             data_update: Some(data_update),
             ws_sender: None,

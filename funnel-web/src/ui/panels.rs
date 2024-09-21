@@ -3,17 +3,18 @@ use egui::{
     ScrollArea, SidePanel, Spinner, TopBottomPanel,
 };
 use funnel_shared::GuildWithChannels;
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use strum::{EnumCount, IntoEnumIterator};
 
 use crate::core::{MainWindow, TabState};
 use crate::ui::{AnimatedLabel, AnimatedMenuLabel, DateNavigator};
-use crate::{AppEvent, AppStatus};
+use crate::{AppEvent, AppStatus, EventBus};
 
 pub struct PanelStatus {
     tab_state: TabState,
     show_guild: bool,
     show_channel: bool,
+    show_compared: bool,
     dot_count: usize,
     date_nav: Vec<DateNavigator>,
     app_status: AppStatus,
@@ -32,6 +33,7 @@ impl Default for PanelStatus {
             tab_state: TabState::default(),
             show_guild: true,
             show_channel: true,
+            show_compared: false,
             dot_count: 0,
             date_nav: vec![DateNavigator::default()],
             app_status: AppStatus::default(),
@@ -47,7 +49,12 @@ impl Default for PanelStatus {
 }
 
 impl PanelStatus {
-    fn show_upper_bar(&mut self, ctx: &Context, pass_authenticated: bool, events: &mut VecDeque<AppEvent>) {
+    fn show_upper_bar(
+        &mut self,
+        ctx: &Context,
+        pass_authenticated: bool,
+        event_bus: &mut EventBus,
+    ) {
         TopBottomPanel::top("upper_bar")
             .show_separator_line(false)
             .show(ctx, |ui| {
@@ -71,7 +78,19 @@ impl PanelStatus {
                         self.show_channel = !self.show_channel;
                     };
                     ui.separator();
-                    self.date_nav[self.selected_guild].show_ui(ui, pass_authenticated, events);
+                    self.date_nav[self.selected_guild].show_ui(ui, pass_authenticated, event_bus);
+
+                    if self.tab_state == TabState::first_value() && pass_authenticated {
+                        ui.separator();
+                        if ui
+                            .selectable_label(self.show_compared, "Compare Data")
+                            .on_hover_text("Show/Hide UI of comparing overivew data")
+                            .clicked()
+                        {
+                            self.show_compared = !self.show_compared;
+                            event_bus.publish(AppEvent::CompareVisibility);
+                        };
+                    }
                 });
 
                 ui.add_space(0.5);
@@ -86,11 +105,17 @@ impl PanelStatus {
                 menu::bar(ui, |ui| {
                     ui.set_style(ctx.style());
 
+                    let space_anim = ui.make_persistent_id("top_spacing_anim");
                     if self.top_button_size != 0.0 {
                         let max_size = ui.available_width();
                         let space_taken = TabState::COUNT as f32 * self.top_button_size;
                         let remaining = max_size - space_taken;
-                        ui.add_space(remaining / 2.0);
+                        let space_amount =
+                            ui.ctx()
+                                .animate_value_with_time(space_anim, remaining / 2.0, 0.5);
+                        ui.add_space(space_amount);
+                    } else {
+                        ui.ctx().animate_value_with_time(space_anim, 0.0, 0.0);
                     }
                     let hover_position = ui.make_persistent_id("menu_hover");
                     let selected_position = ui.make_persistent_id("menu_selected");
@@ -355,11 +380,16 @@ impl PanelStatus {
         self.reset_guild_anim = true;
         self.date_nav = date_list;
     }
+
+    pub fn show_compared(&self) -> bool {
+        self.show_compared
+    }
 }
 
 impl MainWindow {
     pub fn show_panels(&mut self, ctx: &Context) {
-        self.panels.show_upper_bar(ctx, self.password.pass_authenticated(), &mut self.events);
+        self.panels
+            .show_upper_bar(ctx, self.password.pass_authenticated(), &mut self.event_bus);
         self.panels.show_left_bar(ctx);
         self.panels.show_right_bar(ctx);
         self.panels.show_bottom_bar(ctx);
@@ -370,10 +400,10 @@ impl MainWindow {
 
         CentralPanel::default().show(ctx, |ui| {
             if !self.password.pass_authenticated() {
-                self.password.show_pass_ui(ui, &mut self.events);
+                self.password.show_pass_ui(ui, &mut self.event_bus);
             } else {
                 self.tabs
-                    .show_tab_ui(ui, self.panels.tab_state, &mut self.events);
+                    .show_tab_ui(ui, self.panels.tab_state, &mut self.event_bus);
             }
         });
     }

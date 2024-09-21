@@ -1,8 +1,7 @@
 use egui::{Align, Button, Grid, Key, Layout, TextEdit, Ui, Vec2};
-use std::collections::VecDeque;
 
 use crate::core::{get_new_x, MainWindow};
-use crate::AppEvent;
+use crate::{AppEvent, EventBus};
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub struct PasswordStatus {
@@ -59,7 +58,20 @@ impl PasswordStatus {
         clicked
     }
 
-    pub fn show_pass_ui(&mut self, ui: &mut Ui, events: &mut VecDeque<AppEvent>) {
+    fn add_info_text(&self, ui: &mut Ui, spacing: f32) {
+        ui.add_space(20.0);
+        Grid::new("Info Grid")
+            .num_columns(2)
+            .spacing([5.0, 10.0])
+            .show(ui, |ui| {
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    ui.label("📝: The server side of this project is not live anywhere right now so it is not possible to pass this step right now");
+                    ui.add_space(spacing);
+                });
+            });
+    }
+
+    pub fn show_pass_ui(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
         ui.add_space(20.0);
         ui.vertical_centered(|ui| {
             ui.heading("Enter Password");
@@ -93,7 +105,7 @@ impl PasswordStatus {
 
                     if text_edit_box.has_focus() && enter_pressed && !self.authenticating {
                         self.authenticating = true;
-                        events.push_back(AppEvent::StartWsConnection);
+                        event_bus.publish(AppEvent::StartWsConnection);
                     }
 
                     if ui
@@ -109,8 +121,9 @@ impl PasswordStatus {
         ui.add_space(10.0);
         if self.add_submit_button(ui) {
             self.authenticating = true;
-            events.push_back(AppEvent::StartWsConnection)
+            event_bus.publish(AppEvent::StartWsConnection)
         }
+        self.add_info_text(ui, x_10);
     }
 }
 

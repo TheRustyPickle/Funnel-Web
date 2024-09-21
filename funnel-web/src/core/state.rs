@@ -37,6 +37,8 @@ pub enum NavigationType {
 
 pub enum AppEvent {
     DateChanged,
+    CompareDate,
+    CompareVisibility,
     StartWsConnection,
 }
 
