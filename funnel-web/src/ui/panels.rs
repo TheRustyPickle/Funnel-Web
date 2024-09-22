@@ -1,6 +1,6 @@
 use egui::{
-    global_dark_light_mode_switch, menu, Align, CentralPanel, Context, Image, ImageButton, Layout,
-    ScrollArea, SidePanel, Spinner, TopBottomPanel, Visuals,
+    menu, Align, CentralPanel, Context, Image, ImageButton, Layout, ScrollArea, SidePanel, Spinner,
+    TopBottomPanel, Visuals,
 };
 use egui_theme_lerp::ThemeAnimator;
 use funnel_shared::GuildWithChannels;
@@ -62,8 +62,23 @@ impl PanelStatus {
             .show_separator_line(false)
             .show(ctx, |ui| {
                 ui.add_space(4.0);
-                ui.horizontal(|ui| {
-                    global_dark_light_mode_switch(ui);
+                menu::bar(ui, |ui| {
+                    let theme_emoji = if !self.theme_animator.animation_done {
+                        if self.theme_animator.theme_1_to_2 {
+                            "☀"
+                        } else {
+                            "🌙"
+                        }
+                    } else if self.theme_animator.theme_1_to_2 {
+                        "🌙"
+                    } else {
+                        "☀"
+                    };
+                    if ui.button(theme_emoji).clicked() {
+                        self.theme_animator.start();
+                    }
+
+                    ui.set_style(ctx.style());
                     ui.separator();
                     if ui
                         .selectable_label(self.show_guild, "Show Guild List")
@@ -408,9 +423,6 @@ impl MainWindow {
                 self.panels.theme_animator.animate(ctx)
             };
 
-            if ui.button("Start").clicked() {
-                self.panels.theme_animator.start();
-            }
             if !self.password.pass_authenticated() {
                 self.password.show_pass_ui(ui, &mut self.event_bus);
             } else {
