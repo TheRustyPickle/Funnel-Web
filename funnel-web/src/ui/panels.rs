@@ -1,7 +1,8 @@
 use egui::{
     global_dark_light_mode_switch, menu, Align, CentralPanel, Context, Image, ImageButton, Layout,
-    ScrollArea, SidePanel, Spinner, TopBottomPanel,
+    ScrollArea, SidePanel, Spinner, TopBottomPanel, Visuals,
 };
+use egui_theme_lerp::ThemeAnimator;
 use funnel_shared::GuildWithChannels;
 use std::collections::HashSet;
 use strum::{EnumCount, IntoEnumIterator};
@@ -25,6 +26,7 @@ pub struct PanelStatus {
     guild_changed: bool,
     reset_guild_anim: bool,
     top_button_size: f32,
+    theme_animator: ThemeAnimator,
 }
 
 impl Default for PanelStatus {
@@ -44,6 +46,7 @@ impl Default for PanelStatus {
             guild_changed: false,
             reset_guild_anim: false,
             top_button_size: 0.0,
+            theme_animator: ThemeAnimator::new(Visuals::light(), Visuals::dark()),
         }
     }
 }
@@ -399,6 +402,15 @@ impl MainWindow {
         }
 
         CentralPanel::default().show(ctx, |ui| {
+            if self.panels.theme_animator.anim_id.is_none() {
+                self.panels.theme_animator.create_id(ui);
+            } else {
+                self.panels.theme_animator.animate(ctx)
+            };
+
+            if ui.button("Start").clicked() {
+                self.panels.theme_animator.start();
+            }
             if !self.password.pass_authenticated() {
                 self.password.show_pass_ui(ui, &mut self.event_bus);
             } else {
