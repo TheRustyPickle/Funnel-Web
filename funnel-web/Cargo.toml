@@ -25,7 +25,6 @@ eframe = { version = "0.28.1", default-features = false, features = [
 ] }
 log = "0.4.22"
 wasm-bindgen-futures = "0.4.43"
-web-sys = "0.3.70"
 egui-dropdown = "0.10.0"
 egui_extras = { version = "0.28.1", features = ["datepicker", "all_loaders"] }
 egui_plot = "0.28.1"
@@ -34,3 +33,11 @@ image = "0.25.2"
 strum = "0.26.3"
 strum_macros = "0.26.4"
 gloo-worker = "0.5.0"
+egui-theme-lerp = "0.1.0"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
+version = ">= 0.3.4, < 0.3.70"
+
+
+[profile.release]
+opt-level = 2 # fast and small wasm
