@@ -172,13 +172,13 @@ impl DateNavigator {
     }
 
     /// Handler and not mutable
-    pub fn handler_i(&self) -> &DatePickerHandler {
-        &self.handler
+    pub fn handler_i(&self) -> DatePickerHandler {
+        self.handler
     }
 
-    pub fn nav_type(&mut self) -> &mut NavigationType {
-        &mut self.nav_type
-    }
+    // pub fn nav_type(&mut self) -> &mut NavigationType {
+    //     &mut self.nav_type
+    // }
 
     pub fn nav_name(&self) -> String {
         self.nav_type.to_string()

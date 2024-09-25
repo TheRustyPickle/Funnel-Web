@@ -29,6 +29,13 @@ impl Status {
     pub fn is_error(&self) -> bool {
         matches!(self, Status::Error)
     }
+
+    pub fn page(&self) -> u64 {
+        if let Status::Success { current_page } = self {
+            return *current_page;
+        }
+        panic!("Should not be here");
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]

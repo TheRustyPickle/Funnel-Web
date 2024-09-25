@@ -1,7 +1,7 @@
 use egui::{TopBottomPanel, Ui};
 
 use crate::core::to_header;
-use crate::ui::{Card, DateNavigator};
+use crate::ui::{Card, DateNavigator, ShowUI};
 use crate::EventBus;
 
 #[derive(Default)]
@@ -20,9 +20,8 @@ pub struct Overview {
     compare_size: f32,
 }
 
-// TODO: Allow comparing these numbers with a different date, show up or down %
-impl Overview {
-    pub fn show_ui(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
+impl ShowUI for Overview {
+    fn show_ui(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
         self.most_active_member = String::from("OneTwoThree: 100");
         self.most_active_channel = String::from("OneTwoThree: 100");
 
@@ -129,7 +128,9 @@ impl Overview {
         });
         ui.add_space(50.0);
     }
-
+}
+// TODO: Allow comparing these numbers with a different date, show up or down %
+impl Overview {
     fn show_bottom_bar(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
         TopBottomPanel::bottom("bottom_panel_comparison")
             .show_separator_line(true)
@@ -146,9 +147,5 @@ impl Overview {
                     self.compare_size = consumed;
                 });
             });
-    }
-
-    pub fn set_bottom_panel(&mut self, status: bool) {
-        self.show_bottom = status;
     }
 }

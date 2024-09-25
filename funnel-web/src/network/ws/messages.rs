@@ -8,6 +8,7 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
         handle_errors(window, response.get_error());
         return None;
     }
+
     match response.response {
         Response::AuthenticationSuccess => {
             info!("Client successfully authenticated. Getting guild list");
@@ -15,10 +16,34 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             window.send_ws(Request::guilds());
         }
         Response::Guilds(guilds) => {
+            for guild in &guilds {
+                let guild_id = guild.guild.guild_id;
+                window.send_ws(Request::get_messages(guild_id, 0));
+                window.tabs.set_data(guild_id);
+            }
             window.panels.set_guild_channels(guilds);
-            window.panels.set_app_status(AppStatus::Idle);
+            window
+                .tabs
+                .set_current_guild(window.panels.selected_guild());
         }
-        Response::Messages(messages) => {}
+        Response::Messages(messages) => {
+            if messages.is_empty() {
+                return None;
+            }
+
+            let do_new_page = messages.len() == 100;
+
+            let guild_id = messages[0].message.guild_id;
+
+            for message in messages {
+                window.tabs.handle_message(message, &mut window.event_bus)
+            }
+            window.tabs.recreate_rows(guild_id, None);
+            if do_new_page {
+                let current_page = response.status.page();
+                window.send_ws(Request::get_messages(guild_id, current_page + 1));
+            }
+        }
         Response::Error(_) => unreachable!(),
     }
     None

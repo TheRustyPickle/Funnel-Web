@@ -42,7 +42,6 @@ impl MainWindow {
                             } else {
                                 error!("Unknown response gotten from server");
                             }
-                            // let response = WsResponse::from_json(message.);
                         }
                     }
                 }

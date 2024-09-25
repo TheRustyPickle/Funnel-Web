@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use egui::{
     menu, Align, CentralPanel, Context, Image, ImageButton, Layout, ScrollArea, SidePanel, Spinner,
     TopBottomPanel, Visuals,
@@ -8,7 +9,7 @@ use std::collections::HashSet;
 use strum::{EnumCount, IntoEnumIterator};
 
 use crate::core::{MainWindow, TabState};
-use crate::ui::{AnimatedLabel, AnimatedMenuLabel, DateNavigator};
+use crate::ui::{AnimatedLabel, AnimatedMenuLabel, DateNavigator, DatePickerHandler};
 use crate::{AppEvent, AppStatus, EventBus};
 
 pub struct PanelStatus {
@@ -165,7 +166,7 @@ impl PanelStatus {
             });
     }
 
-    fn show_left_bar(&mut self, ctx: &Context) {
+    fn show_left_bar(&mut self, ctx: &Context, event_bus: &mut EventBus) {
         SidePanel::left("left_panel")
             .max_width(70.0)
             .resizable(false)
@@ -227,6 +228,7 @@ impl PanelStatus {
                             if resp.clicked() {
                                 self.selected_guild = index;
                                 self.guild_changed = true;
+                                event_bus.publish(AppEvent::GuildChanged);
                             }
                         }
                     })
@@ -312,6 +314,12 @@ impl PanelStatus {
                                     }
 
                                     if resp.clicked() {
+                                        // All channels cannot be selected if other channels are
+                                        // also selected.
+                                        if index != 0 {
+                                            self.selected_channel[self.selected_guild].remove(&0);
+                                        }
+
                                         let already_selected = self.selected_channel
                                             [self.selected_guild]
                                             .contains(&index);
@@ -402,13 +410,28 @@ impl PanelStatus {
     pub fn show_compared(&self) -> bool {
         self.show_compared
     }
+
+    pub fn date_update(&mut self, date: NaiveDate, guild_id: i64) -> DatePickerHandler {
+        let target_index = self
+            .guild_channels
+            .iter()
+            .position(|g| g.guild.guild_id == guild_id)
+            .unwrap();
+        self.date_nav[target_index].handler().update_dates(date);
+        self.date_nav[target_index].handler_i()
+    }
+
+    pub fn selected_guild(&self) -> i64 {
+        let index = self.selected_guild;
+        self.guild_channels[index].guild.guild_id
+    }
 }
 
 impl MainWindow {
     pub fn show_panels(&mut self, ctx: &Context) {
         self.panels
             .show_upper_bar(ctx, self.password.pass_authenticated(), &mut self.event_bus);
-        self.panels.show_left_bar(ctx);
+        self.panels.show_left_bar(ctx, &mut self.event_bus);
         self.panels.show_right_bar(ctx);
         self.panels.show_bottom_bar(ctx);
 
