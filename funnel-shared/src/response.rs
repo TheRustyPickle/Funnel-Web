@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Error;
 
+pub const PAGE_VALUE: u64 = 1000;
+
 use crate::{GuildWithChannels, MessageWithUser};
 
 #[derive(Serialize, Deserialize)]
