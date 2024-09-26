@@ -7,3 +7,6 @@ resolver = "2"
 funnel-shared = { path = "funnel-shared" }
 serde = { version = "1.0.209", features = ["derive"] }
 serde_json = "1.0.127"
+
+[profile.release]
+opt-level = 2 # fast and small wasm
