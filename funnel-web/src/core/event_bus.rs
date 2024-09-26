@@ -13,19 +13,29 @@ impl MainWindow {
             };
 
             match event {
-                AppEvent::DateChanged => {}
+                // When date changed from the top of the UI
+                AppEvent::DateChanged => {
+                    let guild_id = self.panels.selected_guild();
+                    let date_handler = self.panels.current_date_handler();
+                    self.tabs.set_date_handler(guild_id, date_handler);
+                    self.tabs.recreate_rows(guild_id);
+                }
                 AppEvent::CompareDate => {}
                 AppEvent::CompareVisibility => {
                     // self.tabs.set_overview_compare(self.panels.show_compared());
                 }
+                // Pressed on submit
                 AppEvent::StartWsConnection => {
                     let password = self.password.pass.clone();
                     self.send(WorkerMessage::StartConnection(password));
                     self.panels.set_app_status(AppStatus::CheckingAuth);
                 }
+                // Messages were gotten from the server and table is asking to update the earliest
+                // to the latest date with at least 1 message
                 AppEvent::TableUpdateDate(date, guild_id) => {
                     let date_handler = self.panels.date_update(date, guild_id);
-                    self.tabs.recreate_rows(guild_id, Some(date_handler));
+                    self.tabs.set_date_handler(guild_id, date_handler);
+                    self.tabs.recreate_rows(guild_id);
                 }
                 AppEvent::CellsCopied(amount) => {
                     self.panels.set_app_status(AppStatus::CellsCopied(amount))

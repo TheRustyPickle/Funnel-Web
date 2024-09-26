@@ -3,9 +3,9 @@ use strum_macros::{Display, EnumCount, EnumIter};
 
 #[derive(Default, Eq, PartialEq, Display, EnumIter, Clone, Copy, EnumCount)]
 pub enum TabState {
-    #[default]
     Overview,
     #[strum(to_string = "User Table")]
+    #[default]
     UserTable,
     #[strum(to_string = "Channel Table")]
     ChannelTable,

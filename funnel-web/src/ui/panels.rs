@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use strum::{EnumCount, IntoEnumIterator};
 
 use crate::core::{MainWindow, TabState};
-use crate::ui::{AnimatedLabel, AnimatedMenuLabel, DateNavigator, DatePickerHandler};
+use crate::ui::{AnimatedLabel, AnimatedMenuLabel, DateHandler, DateNavigator};
 use crate::{AppEvent, AppStatus, EventBus};
 
 pub struct PanelStatus {
@@ -411,7 +411,7 @@ impl PanelStatus {
         self.show_compared
     }
 
-    pub fn date_update(&mut self, date: NaiveDate, guild_id: i64) -> DatePickerHandler {
+    pub fn date_update(&mut self, date: NaiveDate, guild_id: i64) -> DateHandler {
         let target_index = self
             .guild_channels
             .iter()
@@ -424,6 +424,19 @@ impl PanelStatus {
     pub fn selected_guild(&self) -> i64 {
         let index = self.selected_guild;
         self.guild_channels[index].guild.guild_id
+    }
+
+    pub fn current_date_handler(&self) -> DateHandler {
+        self.date_nav[self.selected_guild].handler_i()
+    }
+
+    pub fn date_handler(&self, guild_id: i64) -> DateHandler {
+        let target_index = self
+            .guild_channels
+            .iter()
+            .position(|g| g.guild.guild_id == guild_id)
+            .unwrap();
+        self.date_nav[target_index].handler_i()
     }
 }
 

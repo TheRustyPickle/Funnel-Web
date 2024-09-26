@@ -4,13 +4,13 @@ use egui_extras::DatePickerButton;
 use strum::IntoEnumIterator;
 
 use crate::core::NavigationType;
-use crate::ui::{AnimatedMenuLabel, DatePickerHandler};
+use crate::ui::{AnimatedMenuLabel, DateHandler};
 use crate::{AppEvent, EventBus};
 
 #[derive(Default)]
 pub struct DateNavigator {
     nav_type: NavigationType,
-    handler: DatePickerHandler,
+    handler: DateHandler,
 }
 
 impl DateNavigator {
@@ -167,12 +167,12 @@ impl DateNavigator {
         };
     }
     /// Handler and mutable
-    pub fn handler(&mut self) -> &mut DatePickerHandler {
+    pub fn handler(&mut self) -> &mut DateHandler {
         &mut self.handler
     }
 
     /// Handler and not mutable
-    pub fn handler_i(&self) -> DatePickerHandler {
+    pub fn handler_i(&self) -> DateHandler {
         self.handler
     }
 

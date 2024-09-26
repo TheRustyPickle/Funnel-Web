@@ -7,7 +7,7 @@ use funnel_shared::MessageWithUser;
 use std::collections::{HashMap, HashSet};
 
 use crate::core::{ColumnName, SortOrder};
-use crate::ui::{DatePickerHandler, ShowUI};
+use crate::ui::{DateHandler, ShowUI};
 use crate::{AppEvent, EventBus};
 
 use super::TabHandler;
@@ -130,7 +130,7 @@ pub struct UserTable {
     /// To track whether the mouse pointer went beyond the drag point at least once
     beyond_drag_point: bool,
     indexed_user_ids: HashMap<i64, usize>,
-    date_handler: DatePickerHandler,
+    date_handler: DateHandler,
     total_message: u32,
 }
 
@@ -457,7 +457,7 @@ impl UserTable {
         let global_name = if let Some(name) = &message.sender.global_name {
             name
         } else {
-            "Empty"
+            username
         };
         let user_id = message.sender.user_id;
         let guild_id = message.message.guild_id;
@@ -486,7 +486,12 @@ impl UserTable {
             user_row_data.set_last_seen(local_time);
         }
 
-        event_bus.publish(AppEvent::TableUpdateDate(local_date, guild_id));
+        // User table has a copy of the handler only. Modifying here doesn't impact the UI. Check
+        // here if update is necessary in the main UI, if yes, send an event for processing
+        let needs_update = self.date_handler.update_dates(local_date);
+        if needs_update {
+            event_bus.publish(AppEvent::TableUpdateDate(local_date, guild_id));
+        }
 
         let total_char = message_text.len() as u32;
         let total_word = message_text.split_whitespace().count() as u32;
@@ -513,7 +518,7 @@ impl UserTable {
     }
 
     /// Create the rows that will be shown in the UI.
-    fn create_rows(&mut self, date_handler: Option<DatePickerHandler>) {
+    fn create_rows(&mut self) {
         let mut row_data = HashMap::new();
 
         let mut total_message = 0;
@@ -539,9 +544,9 @@ impl UserTable {
 
                     let total_char = row.total_char;
                     let total_word = row.total_word;
-                    let total_message = row.total_message;
+                    let message_count = row.total_message;
 
-                    user_row_data.increase_message_by(total_message);
+                    user_row_data.increase_message_by(message_count);
                     user_row_data.increment_total_word(total_word);
                     user_row_data.increment_total_char(total_char);
                 } else {
@@ -550,11 +555,8 @@ impl UserTable {
             }
         }
         self.rows = row_data;
-        log::info!("{:?}", self.rows);
         self.total_message = total_message;
-        if let Some(d) = date_handler {
-            self.date_handler = d;
-        }
+        self.formatted_rows.clear();
     }
 
     /// Marks a single column of a row as selected
@@ -934,14 +936,21 @@ impl UserTable {
 
         row_data
     }
+
+    fn set_date_handler(&mut self, handler: DateHandler) {
+        self.date_handler = handler;
+    }
 }
 
 impl TabHandler {
-    pub fn recreate_rows(&mut self, guild_id: i64, date_handler: Option<DatePickerHandler>) {
+    pub fn set_date_handler(&mut self, guild_id: i64, handler: DateHandler) {
         self.user_table
             .get_mut(&guild_id)
             .unwrap()
-            .create_rows(date_handler);
+            .set_date_handler(handler);
+    }
+    pub fn recreate_rows(&mut self, guild_id: i64) {
+        self.user_table.get_mut(&guild_id).unwrap().create_rows();
     }
 
     pub fn handle_message(&mut self, message: MessageWithUser, event_bus: &mut EventBus) {

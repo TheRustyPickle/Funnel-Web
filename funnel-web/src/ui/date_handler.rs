@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 
-#[derive(Default, Clone, Copy)]
-pub struct DatePickerHandler {
+#[derive(Default, Clone, Copy, Eq, PartialEq)]
+pub struct DateHandler {
     /// The From Date currently selected in the UI
     pub from: NaiveDate,
     /// The To Date currently selected in the UI
@@ -16,7 +16,7 @@ pub struct DatePickerHandler {
     end: Option<NaiveDate>,
 }
 
-impl DatePickerHandler {
+impl DateHandler {
     pub fn from(&mut self) -> &mut NaiveDate {
         &mut self.from
     }
@@ -58,18 +58,22 @@ impl DatePickerHandler {
 
     /// Compare the given date with the current Start and End date
     /// to find the oldest and the newest date
-    pub fn update_dates(&mut self, date: NaiveDate) {
+    pub fn update_dates(&mut self, date: NaiveDate) -> bool {
+        let mut needs_update = false;
         if self.start.map_or(true, |current| current > date) {
             self.from = date;
             self.start = Some(date);
             self.last_from = Some(date);
+            needs_update = true;
         }
 
         if self.end.map_or(true, |current_date| current_date < date) {
             self.to = date;
             self.end = Some(date);
             self.last_to = Some(date);
+            needs_update = true;
         }
+        needs_update
     }
 
     /// Whether the given date is whtin the current From and To range
