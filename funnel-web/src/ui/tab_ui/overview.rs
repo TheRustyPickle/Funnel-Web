@@ -40,6 +40,7 @@ impl ShowUI for Overview {
                 let max_size = ui.available_width();
                 let space_taken = 3.0 * self.card_size;
                 let remaining = max_size - space_taken;
+                let remaining = ui.painter().round_to_pixel_center(remaining);
                 let space_amount =
                     ui.ctx()
                         .animate_value_with_time(space_3_item, remaining / 2.0, 0.5);
@@ -47,6 +48,7 @@ impl ShowUI for Overview {
 
                 let space_taken = 2.0 * self.card_size;
                 let remaining = max_size - space_taken;
+                let remaining = ui.painter().round_to_pixel_center(remaining);
                 let space_amount =
                     ui.ctx()
                         .animate_value_with_time(space_2_item, remaining / 2.0, 0.5);

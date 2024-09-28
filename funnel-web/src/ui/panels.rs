@@ -138,8 +138,8 @@ impl PanelStatus {
                     let space_anim = ui.make_persistent_id("top_spacing_anim");
                     if self.top_button_size != 0.0 {
                         let max_size = ui.available_width();
-                        let space_taken = TabState::COUNT as f32 * self.top_button_size;
-                        let remaining = max_size - space_taken;
+                        let remaining = max_size - self.top_button_size;
+                        let remaining = ui.painter().round_to_pixel_center(remaining);
                         let space_amount =
                             ui.ctx()
                                 .animate_value_with_time(space_anim, remaining / 2.0, 0.5);
@@ -149,13 +149,13 @@ impl PanelStatus {
                     }
                     let hover_position = ui.make_persistent_id("menu_hover");
                     let selected_position = ui.make_persistent_id("menu_selected");
+                    let max_width = ui.available_width();
                     for val in TabState::iter() {
                         let val_string = val.to_string();
                         let selected = self.tab_state == val;
 
                         let first_value = val == TabState::first_value();
 
-                        let remaining_width = ui.available_width();
                         let resp = ui.add(AnimatedMenuLabel::new(
                             selected,
                             val_string,
@@ -166,13 +166,13 @@ impl PanelStatus {
                             Some(Rounding::ZERO),
                             (first_value, true),
                         ));
-                        let space_taken = remaining_width - ui.available_width();
-                        self.top_button_size = space_taken;
 
                         if resp.clicked() {
                             self.tab_state = val;
                         }
                     }
+                    let space_taken = max_width - ui.available_width();
+                    self.top_button_size = space_taken;
                 });
                 ui.add_space(2.0);
             });
