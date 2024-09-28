@@ -1,4 +1,4 @@
-use egui::Context;
+use eframe::egui::Context;
 use std::collections::VecDeque;
 
 use crate::core::MainWindow;

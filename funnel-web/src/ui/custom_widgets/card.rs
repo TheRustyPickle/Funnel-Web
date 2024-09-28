@@ -1,4 +1,4 @@
-use egui::{Align2, Response, Sense, TextStyle, Vec2, Widget, WidgetText};
+use eframe::egui::{Align2, Response, Sense, TextStyle, Ui, Vec2, Widget, WidgetText};
 
 pub struct Card {
     header: WidgetText,
@@ -24,7 +24,7 @@ impl Card {
 }
 
 impl Widget for Card {
-    fn ui(self, ui: &mut egui::Ui) -> Response {
+    fn ui(self, ui: &mut Ui) -> Response {
         let Self {
             header,
             content,

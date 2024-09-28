@@ -1,4 +1,4 @@
-use eframe::{App, Frame};
+use eframe::{egui, App, Frame};
 use egui::Context;
 use egui_extras::install_image_loaders;
 use ewebsock::WsMessage;

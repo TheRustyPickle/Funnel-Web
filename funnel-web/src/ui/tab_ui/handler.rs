@@ -1,6 +1,5 @@
+use eframe::egui::Ui;
 use std::collections::HashMap;
-
-use egui::Ui;
 
 use crate::ui::{Overview, UserTable};
 use crate::{EventBus, TabState};

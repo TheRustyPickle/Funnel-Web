@@ -1,5 +1,5 @@
 use chrono::{Days, Months};
-use egui::{Button, Key, Ui};
+use eframe::egui::{Button, Key, Ui};
 use egui_extras::DatePickerButton;
 use strum::IntoEnumIterator;
 
@@ -18,12 +18,12 @@ impl DateNavigator {
         ui.label("From:");
         ui.add_enabled(
             pass_authenticated,
-            DatePickerButton::new(self.handler.from()).id_source("1"),
+            DatePickerButton::new(self.handler.from()).id_salt("1"),
         );
         ui.label("To:");
         ui.add_enabled(
             pass_authenticated,
-            DatePickerButton::new(self.handler.to()).id_source("2"),
+            DatePickerButton::new(self.handler.to()).id_salt("2"),
         );
 
         if ui
@@ -49,6 +49,7 @@ impl DateNavigator {
                 hover_position,
                 43.0,
                 18.0,
+                None,
                 (false, false),
             ));
 
@@ -109,9 +110,9 @@ impl DateNavigator {
 
     pub fn show_ui_compare(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
         ui.label("From:");
-        ui.add(DatePickerButton::new(self.handler.from()).id_source("3"));
+        ui.add(DatePickerButton::new(self.handler.from()).id_salt("3"));
         ui.label("To:");
-        ui.add(DatePickerButton::new(self.handler.to()).id_source("4"));
+        ui.add(DatePickerButton::new(self.handler.to()).id_salt("4"));
 
         if ui
             .add(Button::new("Compare"))
@@ -137,6 +138,7 @@ impl DateNavigator {
                 hover_position,
                 43.0,
                 18.0,
+                None,
                 (false, false),
             ));
 
