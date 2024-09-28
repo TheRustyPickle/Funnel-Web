@@ -7,10 +7,8 @@ use funnel_shared::MessageWithUser;
 use std::collections::{HashMap, HashSet};
 
 use crate::core::{ColumnName, SortOrder};
-use crate::ui::{DateHandler, ShowUI};
+use crate::ui::{DateHandler, ShowUI, TabHandler};
 use crate::{AppEvent, EventBus};
-
-use super::TabHandler;
 
 #[derive(Clone, Debug)]
 struct UserRowData {
@@ -148,9 +146,9 @@ impl ShowUI for UserTable {
         }
 
         ui.horizontal(|ui| {
-            ui.label(format!("Total User: {}", self.get_total_user()));
+            ui.label(format!("Total rows: {}", self.get_total_user()));
             ui.separator();
-            ui.label(format!("Total Message: {}", self.total_message));
+            // ui.label(format!("Total Message: {}", self.total_message));
         });
         ui.separator();
 
@@ -291,6 +289,7 @@ impl UserTable {
             if !ui.ctx().input(|i| i.modifiers.ctrl)
                 && !ui.ctx().input(|i| i.pointer.secondary_clicked())
             {
+                log::info!("insie here");
                 self.unselected_all();
             }
             self.select_single_row_cell(row_data.id, column_name);
@@ -499,7 +498,6 @@ impl UserTable {
         user_row_data.increment_total_message();
         user_row_data.increment_total_word(total_word);
         user_row_data.increment_total_char(total_char);
-        self.formatted_rows.clear();
     }
 
     fn get_total_user(&self) -> i32 {
@@ -511,7 +509,7 @@ impl UserTable {
         // It needs to be sorted each load otherwise
         // `self.rows` gets updated with newer data
         // Unless recreated after an update, the UI will show outdated data
-        if self.formatted_rows.is_empty() || self.formatted_rows.len() != self.rows.len() {
+        if self.formatted_rows.len() != self.rows.len() {
             self.formatted_rows = self.sort_rows();
         }
         self.formatted_rows.clone()
@@ -564,12 +562,13 @@ impl UserTable {
         self.active_columns.insert(column_name);
         self.active_rows.insert(user_id);
 
-        self.rows
-            .get_mut(&user_id)
+        let target_index = self.indexed_user_ids.get(&user_id).unwrap();
+
+        self.formatted_rows
+            .get_mut(*target_index)
             .unwrap()
             .selected_columns
             .insert(column_name);
-        self.formatted_rows.clear();
     }
 
     /// Continuously called to select rows and columns when dragging has started
@@ -637,11 +636,9 @@ impl UserTable {
             self.active_columns = new_column_set;
         }
 
-        // The rows in the current sorted format
-        let all_rows = self.rows();
-
+        let current_row_index = self.indexed_user_ids.get(&user_id).unwrap();
         // The row the mouse pointer is on
-        let current_row = self.rows.get_mut(&user_id).unwrap();
+        let current_row = self.formatted_rows.get_mut(*current_row_index).unwrap();
 
         // If this row already selects the column that we are trying to select, it means the mouse
         // moved backwards from an active column to another active column.
@@ -674,7 +671,11 @@ impl UserTable {
             }
 
             // Get the last row where the mouse was
-            let last_row = self.rows.get_mut(&self.last_active_row.unwrap()).unwrap();
+            let current_row_index = self
+                .indexed_user_ids
+                .get(&self.last_active_row.unwrap())
+                .unwrap();
+            let last_row = self.formatted_rows.get_mut(*current_row_index).unwrap();
 
             self.last_active_row = Some(user_id);
 
@@ -703,48 +704,31 @@ impl UserTable {
         let drag_start_index = self.indexed_user_ids.get(&drag_start.0).unwrap().to_owned();
 
         if no_checking {
-            self.remove_row_selection(
-                &all_rows,
-                current_row_index,
-                drag_start_index,
-                is_ctrl_pressed,
-            );
+            self.remove_row_selection(current_row_index, drag_start_index, is_ctrl_pressed);
         } else {
             // If drag started on row 1, currently on row 5, check from row 4 to 1 and select all columns
             // else go through all rows till a row without any selected column is found. Applied both by incrementing or decrementing index.
             // In case of fast mouse movement following drag started point mitigates the risk of some rows not getting selected
-            self.check_row_selection(true, &all_rows, current_row_index, drag_start_index);
-            self.check_row_selection(false, &all_rows, current_row_index, drag_start_index);
-            self.remove_row_selection(
-                &all_rows,
-                current_row_index,
-                drag_start_index,
-                is_ctrl_pressed,
-            );
+            self.check_row_selection(true, current_row_index, drag_start_index);
+            self.check_row_selection(false, current_row_index, drag_start_index);
+            self.remove_row_selection(current_row_index, drag_start_index, is_ctrl_pressed);
         }
-        self.formatted_rows.clear();
     }
 
     /// Recursively check the rows by either increasing or decreasing the initial index
     /// till the end point or an unselected row is found. Add active columns to the rows that have at least one column selected.
-    fn check_row_selection(
-        &mut self,
-        check_previous: bool,
-        rows: &Vec<UserRowData>,
-        index: usize,
-        drag_start: usize,
-    ) {
+    fn check_row_selection(&mut self, check_previous: bool, index: usize, drag_start: usize) {
         if index == 0 && check_previous {
             return;
         }
 
-        if index + 1 == rows.len() && !check_previous {
+        if index + 1 == self.formatted_rows.len() && !check_previous {
             return;
         }
 
         let index = if check_previous { index - 1 } else { index + 1 };
 
-        let current_row = rows.get(index).unwrap();
+        let current_row = self.formatted_rows.get(index).unwrap();
         let mut unselected_row = current_row.selected_columns.is_empty();
 
         // if for example drag started on row 5 and ended on row 10 but missed drag on row 7
@@ -753,7 +737,8 @@ impl UserTable {
             unselected_row = false;
         }
 
-        let target_row = self.rows.get_mut(&current_row.id).unwrap();
+        // let target_row = self.rows.get_mut(&current_row.id).unwrap();
+        let target_row = self.formatted_rows.get_mut(index).unwrap();
 
         if !unselected_row {
             target_row.selected_columns.clone_from(&self.active_columns);
@@ -761,10 +746,10 @@ impl UserTable {
 
             if check_previous {
                 if index != 0 {
-                    self.check_row_selection(check_previous, rows, index, drag_start);
+                    self.check_row_selection(check_previous, index, drag_start);
                 }
-            } else if index + 1 != rows.len() {
-                self.check_row_selection(check_previous, rows, index, drag_start);
+            } else if index + 1 != self.formatted_rows.len() {
+                self.check_row_selection(check_previous, index, drag_start);
             }
         }
     }
@@ -772,7 +757,6 @@ impl UserTable {
     /// Checks the active rows and unselects rows that are not within the given range
     fn remove_row_selection(
         &mut self,
-        rows: &[UserRowData],
         current_index: usize,
         drag_start: usize,
         is_ctrl_pressed: bool,
@@ -780,8 +764,7 @@ impl UserTable {
         let active_ids = self.active_rows.clone();
         for id in active_ids {
             let ongoing_index = self.indexed_user_ids.get(&id).unwrap().to_owned();
-            let current_row = rows.get(ongoing_index).unwrap();
-            let target_row = self.rows.get_mut(&current_row.id).unwrap();
+            let target_row = self.formatted_rows.get_mut(ongoing_index).unwrap();
 
             if current_index > drag_start {
                 if ongoing_index >= drag_start && ongoing_index <= current_index {
@@ -801,14 +784,19 @@ impl UserTable {
 
     /// Unselect all rows and columns
     fn unselected_all(&mut self) {
-        for (_, row) in self.rows.iter_mut() {
-            row.selected_columns.clear();
+        for id in &self.active_rows {
+            let id_index = self.indexed_user_ids.get(id).unwrap();
+            let target_row = self.formatted_rows.get_mut(*id_index).unwrap();
+            target_row.selected_columns.clear();
         }
+        // for (_, row) in self.rows.iter_mut() {
+        //     row.selected_columns.clear();
+        // }
         self.active_columns.clear();
         self.last_active_row = None;
         self.last_active_column = None;
         self.active_rows.clear();
-        self.formatted_rows.clear();
+        // self.formatted_rows.clear();
     }
 
     /// Select all rows and columns
@@ -821,8 +809,7 @@ impl UserTable {
             all_columns.push(current_column);
             current_column = current_column.get_next();
         }
-
-        for (_, row) in self.rows.iter_mut() {
+        for row in self.formatted_rows.iter_mut() {
             row.selected_columns.extend(all_columns.clone());
             all_rows.push(row.id);
         }
@@ -831,7 +818,6 @@ impl UserTable {
         self.active_rows.extend(all_rows);
         self.last_active_row = None;
         self.last_active_column = None;
-        self.formatted_rows.clear();
     }
 
     /// Change the value it is currently sorted by. Called on header column click
