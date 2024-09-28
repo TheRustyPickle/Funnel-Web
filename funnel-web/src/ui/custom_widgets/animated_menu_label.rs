@@ -1,6 +1,6 @@
-use egui::{
-    Id, LayerId, Order, Response, Sense, TextStyle, Ui, Vec2, Widget, WidgetInfo, WidgetText,
-    WidgetType,
+use eframe::egui::{
+    Id, LayerId, Order, Response, Rounding, Sense, Stroke, TextStyle, Ui, Vec2, Widget, WidgetInfo,
+    WidgetText, WidgetType,
 };
 
 pub struct AnimatedMenuLabel {
@@ -10,9 +10,11 @@ pub struct AnimatedMenuLabel {
     hover_position: Id,
     x_size: f32,
     y_size: f32,
+    rounding: Option<Rounding>,
     separator_position: (bool, bool),
 }
 
+#[allow(clippy::too_many_arguments)]
 impl AnimatedMenuLabel {
     pub fn new(
         selected: bool,
@@ -21,6 +23,7 @@ impl AnimatedMenuLabel {
         hover_position: Id,
         x_size: f32,
         y_size: f32,
+        rounding: Option<Rounding>,
         separator_position: (bool, bool),
     ) -> Self {
         Self {
@@ -30,6 +33,7 @@ impl AnimatedMenuLabel {
             hover_position,
             x_size,
             y_size,
+            rounding,
             separator_position,
         }
     }
@@ -44,6 +48,7 @@ impl Widget for AnimatedMenuLabel {
             hover_position,
             x_size,
             y_size,
+            rounding,
             separator_position,
         } = self;
 
@@ -67,9 +72,11 @@ impl Widget for AnimatedMenuLabel {
             // stuttering in the UI
             // For whatever reason 4.0 is the magic number that maintains correct x distance between
             // the widgets. Or at least close to that.
-            let stroke = ui.visuals().widgets.noninteractive.bg_stroke;
-            ui.painter()
-                .vline(rect.min.x - 4.0, separator_y_1..=separator_y_2, stroke);
+            let painter = ui.painter();
+            let fixed_line_x = painter.round_to_pixel_center(rect.min.x - 4.0);
+            let color = ui.visuals().widgets.noninteractive.bg_stroke.color;
+            let stroke = Stroke::new(1.0, color);
+            painter.vline(fixed_line_x, separator_y_1..=separator_y_2, stroke);
         }
         response.widget_info(|| {
             WidgetInfo::selected(
@@ -83,6 +90,12 @@ impl Widget for AnimatedMenuLabel {
         if ui.is_rect_visible(response.rect) {
             // Color of the widget. Blue if selected, otherwise transparent grayish color
             let visuals = ui.style().interact_selectable(&response, selected);
+
+            let rounding = if let Some(r) = rounding {
+                r
+            } else {
+                visuals.rounding
+            };
 
             let text_galley = ui.painter().layout_no_wrap(
                 text.text().to_string(),
@@ -114,7 +127,7 @@ impl Widget for AnimatedMenuLabel {
                 // Hard coded value, not sure what caused them to be different in my case.
                 // Determined by manually testing
                 background_rect.min.y = separator_y_1 + 5.0;
-                background_rect.max.y = separator_y_2 - 4.0;
+                background_rect.max.y = separator_y_2 - 3.0;
             }
 
             if selected {
@@ -128,12 +141,12 @@ impl Widget for AnimatedMenuLabel {
                 let rect_difference = background_rect.max.x - background_rect.min.x;
                 let remaining = x_size - rect_difference;
 
-                background_rect.min.x -= remaining / 2.0;
-                background_rect.max.x += remaining / 2.0;
+                background_rect.min.x -= remaining / 2.0 + 3.5;
+                background_rect.max.x += remaining / 2.0 + 3.5;
 
                 ui.painter().rect(
                     background_rect,
-                    visuals.rounding,
+                    rounding,
                     visuals.weak_bg_fill,
                     visuals.bg_stroke,
                 );
@@ -151,12 +164,12 @@ impl Widget for AnimatedMenuLabel {
                 let rect_difference = background_rect.max.x - background_rect.min.x;
                 let remaining = x_size - rect_difference;
 
-                background_rect.min.x -= remaining / 2.0;
-                background_rect.max.x += remaining / 2.0;
+                background_rect.min.x -= remaining / 2.0 + 3.0;
+                background_rect.max.x += remaining / 2.0 + 3.0;
 
                 ui.painter().rect(
                     background_rect,
-                    visuals.rounding,
+                    rounding,
                     visuals.weak_bg_fill,
                     visuals.bg_stroke,
                 );
@@ -169,10 +182,11 @@ impl Widget for AnimatedMenuLabel {
                 .galley(text_pos, text_galley, visuals.text_color());
 
             if separator_right {
-                let fixed_line_x = rect.max.x + 4.0;
-                let stroke = ui.visuals().widgets.noninteractive.bg_stroke;
-                ui.painter()
-                    .vline(fixed_line_x, separator_y_1..=separator_y_2, stroke);
+                let painter = ui.painter();
+                let fixed_line_x = painter.round_to_pixel_center(rect.max.x + 4.0);
+                let color = ui.visuals().widgets.noninteractive.bg_stroke.color;
+                let stroke = Stroke::new(1.0, color);
+                painter.vline(fixed_line_x, separator_y_1..=separator_y_2, stroke);
             }
         }
 
