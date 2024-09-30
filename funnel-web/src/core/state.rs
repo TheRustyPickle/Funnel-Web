@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
-use strum_macros::{Display, EnumCount, EnumIter};
+use strum_macros::{Display, EnumIter};
 
-#[derive(Default, Eq, PartialEq, Display, EnumIter, Clone, Copy, EnumCount)]
+#[derive(Default, Eq, PartialEq, Display, EnumIter, Clone, Copy)]
 pub enum TabState {
     #[default]
     Overview,

@@ -6,7 +6,7 @@ use eframe::egui::{
 use egui_theme_lerp::ThemeAnimator;
 use funnel_shared::GuildWithChannels;
 use std::collections::HashSet;
-use strum::{EnumCount, IntoEnumIterator};
+use strum::IntoEnumIterator;
 
 use crate::core::{MainWindow, TabState};
 use crate::ui::{AnimatedLabel, AnimatedMenuLabel, DateHandler, DateNavigator};
