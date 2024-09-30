@@ -117,19 +117,32 @@ pub struct UserTable {
     user_data: HashMap<NaiveDate, HashMap<i64, UserRowData>>,
     // The row data that is currently visible in the UI
     rows: HashMap<i64, UserRowData>,
+    /// Rows in the sorted order
     formatted_rows: Vec<UserRowData>,
+    /// Column that the rows are sorted by
     sorted_by: ColumnName,
+    /// Whether are sorting by Descending or Ascending
     sort_order: SortOrder,
+    /// The cell where dragging started
     drag_started_on: Option<(i64, ColumnName)>,
+    /// Columns with at least 1 selected row
     active_columns: HashSet<ColumnName>,
+    /// Rows with at least 1 selected column
     active_rows: HashSet<i64>,
+    /// The row the mouse pointer was on last frame load
     last_active_row: Option<i64>,
+    /// The column the mouse pointer was on last frame load
     last_active_column: Option<ColumnName>,
     /// To track whether the mouse pointer went beyond the drag point at least once
     beyond_drag_point: bool,
+    /// User Id to index number in `formatted_rows`
     indexed_user_ids: HashMap<i64, usize>,
+    /// Read only currently selected dates in the UI
     date_handler: DateHandler,
     total_message: u32,
+    /// Current offset of the vertical scroll area.
+    /// Never goes below zero.
+    v_offset: f32,
 }
 
 impl ShowUI for UserTable {
@@ -146,9 +159,9 @@ impl ShowUI for UserTable {
         }
 
         ui.horizontal(|ui| {
-            ui.label(format!("Total rows: {}", self.get_total_user()));
+            ui.label(format!("Total Users: {}", self.get_total_user()));
             ui.separator();
-            // ui.label(format!("Total Message: {}", self.total_message));
+            ui.label(format!("Total Message: {}", self.total_message));
         });
         ui.separator();
 
@@ -160,6 +173,9 @@ impl ShowUI for UserTable {
                 let total_header = 10;
                 let mut clip_added = 0;
                 let mut current_column = ColumnName::Name;
+
+                let pointer_location = ui.input(|i| i.pointer.hover_pos());
+                let max_rec = ui.max_rect();
 
                 let mut table = TableBuilder::new(ui)
                     .striped(true)
@@ -179,6 +195,36 @@ impl ShowUI for UserTable {
                     table = table.column(column);
                 }
 
+                if self.drag_started_on.is_some() {
+                    if let Some(loc) = pointer_location {
+                        let pointer_y = loc.y;
+
+                        // Min gets a bit more space as the header is along the way
+                        let min_y = max_rec.min.y + 100.0;
+                        let max_y = max_rec.max.y - 50.0;
+
+                        // Whether the mouse is within the space where the vertical scrolling
+                        // should not happen
+                        let within_y = pointer_y >= min_y && pointer_y <= max_y;
+
+                        // Whether the mounse is above the minimum y point
+                        let above_y = pointer_y < min_y;
+                        // Whether the mounse is above the maximum y point
+                        let below_y = pointer_y > max_y;
+
+                        if !within_y {
+                            if above_y {
+                                self.v_offset -= 10.0;
+                                if self.v_offset < 0.0 {
+                                    self.v_offset = 0.0;
+                                }
+                            } else if below_y {
+                                self.v_offset += 10.0;
+                            }
+                            table = table.vertical_scroll_offset(self.v_offset);
+                        }
+                    }
+                };
                 table
                     .header(20.0, |mut header| {
                         header.col(|ui| {
@@ -272,24 +318,22 @@ impl UserTable {
             }
             self.drag_started_on = Some((row_data.id, column_name));
         }
-        if label.drag_stopped() {
+
+        // label drag release is not reliable
+        let pointer_released = ui.input(|a| a.pointer.primary_released());
+
+        if pointer_released {
             self.last_active_row = None;
             self.last_active_column = None;
             self.drag_started_on = None;
             self.beyond_drag_point = false;
         }
 
-        // Drag part handling has ended, need to handle click event from here.
-        // For some reason if both are added at once, only the one added later responds
-        // FIX: Is this still the case?
-        label = label.interact(Sense::click());
-
         if label.clicked() {
             // If CTRL is not pressed down and the mouse right click is not pressed, unselect all cells
             if !ui.ctx().input(|i| i.modifiers.ctrl)
                 && !ui.ctx().input(|i| i.pointer.secondary_clicked())
             {
-                log::info!("insie here");
                 self.unselected_all();
             }
             self.select_single_row_cell(row_data.id, column_name);
@@ -691,6 +735,7 @@ impl UserTable {
             }
         } else {
             // We are in a new row which we have not selected before
+            self.active_rows.insert(current_row.id);
             self.last_active_row = Some(user_id);
             self.last_active_column = Some(column_name);
             current_row
@@ -789,14 +834,10 @@ impl UserTable {
             let target_row = self.formatted_rows.get_mut(*id_index).unwrap();
             target_row.selected_columns.clear();
         }
-        // for (_, row) in self.rows.iter_mut() {
-        //     row.selected_columns.clear();
-        // }
         self.active_columns.clear();
         self.last_active_row = None;
         self.last_active_column = None;
         self.active_rows.clear();
-        // self.formatted_rows.clear();
     }
 
     /// Select all rows and columns
