@@ -74,7 +74,7 @@ impl Widget for AnimatedMenuLabel {
             // the widgets. Or at least close to that.
             let painter = ui.painter();
             let fixed_line_x = painter.round_to_pixel_center(rect.min.x - 4.0);
-            let color = ui.visuals().widgets.noninteractive.bg_stroke.color;
+            let color = ui.visuals().widgets.noninteractive.fg_stroke.color;
             let stroke = Stroke::new(1.0, color);
             painter.vline(fixed_line_x, separator_y_1..=separator_y_2, stroke);
         }
@@ -184,7 +184,7 @@ impl Widget for AnimatedMenuLabel {
             if separator_right {
                 let painter = ui.painter();
                 let fixed_line_x = painter.round_to_pixel_center(rect.max.x + 4.0);
-                let color = ui.visuals().widgets.noninteractive.bg_stroke.color;
+                let color = ui.visuals().widgets.noninteractive.fg_stroke.color;
                 let stroke = Stroke::new(1.0, color);
                 painter.vline(fixed_line_x, separator_y_1..=separator_y_2, stroke);
             }

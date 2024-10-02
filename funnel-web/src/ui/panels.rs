@@ -32,17 +32,6 @@ pub struct PanelStatus {
 
 impl Default for PanelStatus {
     fn default() -> Self {
-        let mut modified_light = Visuals::light();
-        let mut modified_dark = Visuals::dark();
-
-        // To give the separator and related a brighter color. The default one feels too weak for
-        // me.
-        let light_s = modified_light.widgets.noninteractive.fg_stroke.color;
-        modified_light.widgets.noninteractive.bg_stroke.color = light_s;
-
-        let dark_s = modified_dark.widgets.noninteractive.fg_stroke.color;
-        modified_dark.widgets.noninteractive.bg_stroke.color = dark_s;
-
         Self {
             tab_state: TabState::default(),
             show_guild: true,
@@ -58,7 +47,7 @@ impl Default for PanelStatus {
             guild_changed: false,
             reset_guild_anim: false,
             top_button_size: 0.0,
-            theme_animator: ThemeAnimator::new(modified_light, modified_dark),
+            theme_animator: ThemeAnimator::new(Visuals::light(), Visuals::dark()),
         }
     }
 }
@@ -71,9 +60,9 @@ impl PanelStatus {
         event_bus: &mut EventBus,
     ) {
         TopBottomPanel::top("upper_bar")
-            .show_separator_line(true)
+            .show_separator_line(false)
             .show(ctx, |ui| {
-                ui.add_space(2.0);
+                ui.add_space(4.0);
                 menu::bar(ui, |ui| {
                     let theme_emoji = if !self.theme_animator.animation_done {
                         if self.theme_animator.theme_1_to_2 {
@@ -129,9 +118,9 @@ impl PanelStatus {
 
     fn show_top_bar(&mut self, ctx: &Context) {
         TopBottomPanel::top("top_panel")
-            .show_separator_line(true)
+            .show_separator_line(false)
             .show(ctx, |ui| {
-                ui.add_space(2.0);
+                ui.add_space(3.0);
                 menu::bar(ui, |ui| {
                     ui.set_style(ctx.style());
 
@@ -162,7 +151,7 @@ impl PanelStatus {
                             selected_position,
                             hover_position,
                             100.0,
-                            16.0,
+                            18.0,
                             Some(Rounding::ZERO),
                             (first_value, true),
                         ));
@@ -174,7 +163,7 @@ impl PanelStatus {
                     let space_taken = max_width - ui.available_width();
                     self.top_button_size = space_taken;
                 });
-                ui.add_space(2.0);
+                ui.add_space(3.0);
             });
     }
 
@@ -374,23 +363,13 @@ impl PanelStatus {
             });
     }
 
-    fn show_bottom_bar(&mut self, ctx: &Context) {
-        let show_spinner = self.app_status.show_spinner();
+    pub fn show_bottom_bar(&mut self, ctx: &Context) {
         TopBottomPanel::bottom("bottom_panel")
-            .show_separator_line(true)
+            .show_separator_line(false)
             .show(ctx, |ui| {
+                ui.add_space(4.0);
                 ui.horizontal(|ui| {
-                    // // The sharp hline is no longer showing up so we create it ourselves.
-                    // let panel_rect = ui.max_rect();
-                    // let mut x_range = panel_rect.x_range();
-                    // x_range.min -= 20.0;
-                    // x_range.max += 20.0;
-                    // let y = panel_rect.top();
-                    //
-                    // let color = ui.style().visuals.widgets.noninteractive.fg_stroke.color;
-                    // let stroke = Stroke::new(0.5, color);
-                    //
-                    // ui.painter().hline(x_range, y, stroke);
+                    let show_spinner = self.app_status.show_spinner();
 
                     let mut status_text = self.app_status.to_string();
                     if show_spinner {
@@ -404,6 +383,7 @@ impl PanelStatus {
                         });
                     }
                 });
+                ui.add_space(0.5);
             });
     }
 
@@ -478,11 +458,7 @@ impl MainWindow {
 
         CentralPanel::default().show(ctx, |ui| {
             if self.panels.theme_animator.anim_id.is_none() {
-                // This is only called once. We set the default visual to the modified color we set
-                // during the creation of PanelStatus
                 self.panels.theme_animator.create_id(ui);
-                ui.ctx()
-                    .set_visuals(self.panels.theme_animator.theme_1.clone());
             } else {
                 self.panels.theme_animator.animate(ctx)
             };

@@ -1,5 +1,5 @@
 use eframe::{egui, App, Frame};
-use egui::Context;
+use egui::{Context, ThemePreference};
 use egui_extras::install_image_loaders;
 use ewebsock::WsMessage;
 use ewebsock::{WsReceiver, WsSender};
@@ -40,7 +40,9 @@ impl App for MainWindow {
 
 impl MainWindow {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        cc.egui_ctx.set_pixels_per_point(1.2);
+        cc.egui_ctx.set_pixels_per_point(1.1);
+        cc.egui_ctx.set_theme(ThemePreference::Light);
+
         install_image_loaders(&cc.egui_ctx);
 
         let ctx = cc.egui_ctx.clone();
