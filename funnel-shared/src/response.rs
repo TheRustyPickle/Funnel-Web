@@ -9,7 +9,7 @@ use crate::{GuildWithChannels, MessageWithUser};
 pub enum Response {
     Guilds(Vec<GuildWithChannels>),
     AuthenticationSuccess,
-    Messages(Vec<MessageWithUser>),
+    Messages(i64, Vec<MessageWithUser>),
     Error(ErrorType),
 }
 
@@ -94,11 +94,11 @@ impl WsResponse {
         }
     }
 
-    pub fn messages(messages: Vec<MessageWithUser>, page: u64) -> Self {
+    pub fn messages(guild_id: i64, messages: Vec<MessageWithUser>, page: u64) -> Self {
         let status = Status::success(page);
         Self {
             status,
-            response: Response::Messages(messages),
+            response: Response::Messages(guild_id, messages),
         }
     }
 
