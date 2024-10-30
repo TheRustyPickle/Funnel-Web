@@ -31,7 +31,7 @@ impl ShowUI for Overview {
         let space_2_item = ui.make_persistent_id("card_space_2");
         ui.vertical(|ui| {
             let x_size = 250.0;
-            let y_size = 60.0;
+            let y_size = 70.0;
 
             let mut space_3 = 0.0;
             let mut space_2 = 0.0;

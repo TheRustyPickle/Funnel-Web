@@ -64,7 +64,7 @@ impl Widget for AnimatedMenuLabel {
         let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
 
         // The y values for the separator
-        let separator_y_1 = rect.min.y - 10.0;
+        let separator_y_1 = rect.min.y - 9.1;
         let separator_y_2 = rect.max.y + 10.0;
 
         if separator_left {

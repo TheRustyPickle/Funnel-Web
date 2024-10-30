@@ -317,8 +317,13 @@ impl PanelStatus {
                                     if resp.clicked() {
                                         // All channels cannot be selected if other channels are
                                         // also selected.
+                                        // Other channels cannot be selected if all channels is
+                                        // selected.
+                                        // index 0 = all channel
                                         if index != 0 {
                                             self.selected_channel[self.selected_guild].remove(&0);
+                                        } else if index == 0 {
+                                            self.selected_channel[self.selected_guild].clear();
                                         }
 
                                         let already_selected = self.selected_channel

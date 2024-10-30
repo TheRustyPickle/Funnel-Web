@@ -8,9 +8,12 @@ use gloo_worker::{Spawnable, WorkerBridge};
 use std::cell::Cell;
 use std::rc::Rc;
 
+use crate::core::add_font;
 use crate::ui::{PanelStatus, PasswordStatus, TabHandler};
 use crate::web_worker::{WebWorker, WorkerMessage};
 use crate::EventBus;
+
+pub const JET: &[u8] = include_bytes!("../../../fonts/jetbrains_nerd_propo_regular.ttf");
 
 pub struct MainWindow {
     pub password: PasswordStatus,
@@ -35,6 +38,7 @@ impl App for MainWindow {
         };
         self.check_ws_receiver();
         self.show_panels(ctx);
+        ctx.request_repaint();
     }
 }
 
@@ -46,6 +50,7 @@ impl MainWindow {
         install_image_loaders(&cc.egui_ctx);
 
         let ctx = cc.egui_ctx.clone();
+        add_font(&ctx);
         let data_update = Rc::new(Cell::new(None));
         let sender = data_update.clone();
         let bridge = <WebWorker as Spawnable>::spawner()
