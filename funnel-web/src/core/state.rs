@@ -42,7 +42,7 @@ pub enum AppEvent {
     CompareVisibility,
     StartWsConnection,
     TableUpdateDate(NaiveDate, i64),
-    CellsCopied(i32),
+    CellsCopied,
     GuildChanged,
 }
 
@@ -58,8 +58,8 @@ pub enum AppStatus {
     FailedWs(String),
     #[strum(to_string = "Fetching data from the server")]
     Fetching,
-    #[strum(to_string = "Copied {0} cells to clipboard")]
-    CellsCopied(i32),
+    #[strum(to_string = "Copied selected cells to clipboard")]
+    CellsCopied,
 }
 
 impl AppStatus {
@@ -69,12 +69,12 @@ impl AppStatus {
             AppStatus::Idle
             | AppStatus::FailedAuth(_)
             | AppStatus::FailedWs(_)
-            | AppStatus::CellsCopied(_) => false,
+            | AppStatus::CellsCopied => false,
         }
     }
 }
 
-#[derive(Display, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Copy)]
+#[derive(EnumIter, Display, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Copy)]
 pub enum ColumnName {
     #[default]
     Name,

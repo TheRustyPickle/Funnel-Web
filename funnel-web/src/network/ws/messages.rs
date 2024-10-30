@@ -26,23 +26,24 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 .tabs
                 .set_current_guild(window.panels.selected_guild());
         }
-        Response::Messages(messages) => {
+        Response::Messages(guild_id, messages) => {
             if messages.is_empty() {
+                window.tabs.recreate_rows(guild_id);
                 return None;
             }
 
             let do_new_page = messages.len() as u64 == PAGE_VALUE;
 
-            let guild_id = messages[0].message.guild_id;
-
-            for message in messages {
-                window.tabs.handle_message(message, &mut window.event_bus)
-            }
-            window.tabs.recreate_rows(guild_id);
-
             if do_new_page {
                 let current_page = response.status.page();
                 window.send_ws(Request::get_messages(guild_id, current_page + 1));
+            }
+            for message in messages {
+                window.tabs.handle_message(message, &mut window.event_bus)
+            }
+
+            if !do_new_page {
+                window.tabs.recreate_rows(guild_id);
             }
         }
         Response::Error(_) => unreachable!(),

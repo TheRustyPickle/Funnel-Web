@@ -37,9 +37,7 @@ impl MainWindow {
                     self.tabs.set_date_handler(guild_id, date_handler);
                     self.tabs.recreate_rows(guild_id);
                 }
-                AppEvent::CellsCopied(amount) => {
-                    self.panels.set_app_status(AppStatus::CellsCopied(amount))
-                }
+                AppEvent::CellsCopied => self.panels.set_app_status(AppStatus::CellsCopied),
                 AppEvent::GuildChanged => {
                     self.tabs.set_current_guild(self.panels.selected_guild());
                 }
