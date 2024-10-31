@@ -62,7 +62,7 @@ impl ShowUI for Overview {
                 ui.add_space(space_3);
                 let remaining_width = ui.available_width();
                 ui.add(Card::new(
-                    to_header("Total Messagse"),
+                    to_header("Total Message"),
                     to_header(self.total_message),
                     x_size,
                     y_size,

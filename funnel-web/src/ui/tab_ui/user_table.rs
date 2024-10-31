@@ -66,17 +66,19 @@ impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
             }
 
             ColumnName::FirstMessageSeen => {
-                "The day the first message that was sent by this user was observed".to_string()
+                "The date and time the first message that was sent by this user was observed"
+                    .to_string()
             }
             ColumnName::LastMessageSeen => {
-                "The day the last message that was sent by this user was observed".to_string()
+                "The date and time the last message that was sent by this user was observed"
+                    .to_string()
             }
         };
 
         let is_selected = if let Some(direction) = sort_order {
             match direction {
-                SortOrder::Ascending => label_text.push('↓'),
-                SortOrder::Descending => label_text.push('↑'),
+                SortOrder::Ascending => label_text += " ↓",
+                SortOrder::Descending => label_text += " ↑",
             }
             true
         } else {
@@ -159,7 +161,7 @@ impl ColumnOrdering<UserRowData> for ColumnName {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct UserRowData {
     name: String,
     username: String,
