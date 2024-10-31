@@ -1,23 +1,29 @@
-use reqwest::Client;
-use std::error::Error;
-use std::io;
+use ehttp::{Headers, Request};
+use std::sync::{Arc, Mutex};
+
+use crate::core::RequestStatus;
 
 const SERVER_URL: &str = "https://127.0.0.1:8081/code";
 
-pub async fn get_ws_code(password: String) -> Result<String, Box<dyn Error>> {
-    let client = Client::new();
-
-    let response = client
-        .post(SERVER_URL)
-        .header("X-Secret-Code", password)
-        .send()
-        .await?;
-
-    if response.status().is_success() {
-        let text = response.text().await?;
-        Ok(text)
-    } else {
-        let text = response.text().await?.replace('"', "");
-        Err(Box::new(io::Error::new(io::ErrorKind::Other, text)))
-    }
+pub fn get_ws_password(password: String, status: Arc<Mutex<RequestStatus>>) {
+    let new_header = Headers::new(&[("X-Secret-Code", &password)]);
+    let request = Request {
+        headers: new_header,
+        ..Request::post(SERVER_URL, Vec::new())
+    };
+    *status.lock().unwrap() = RequestStatus::Pending;
+    ehttp::fetch(request, move |response| match response {
+        Ok(resp) => {
+            if resp.ok {
+                let text = resp.text().unwrap();
+                *status.lock().unwrap() = RequestStatus::Gotten(text.to_string());
+            } else {
+                *status.lock().unwrap() =
+                    RequestStatus::Failed(String::from("Failed to get ws password"));
+            }
+        }
+        Err(e) => {
+            *status.lock().unwrap() = RequestStatus::Failed(e);
+        }
+    });
 }

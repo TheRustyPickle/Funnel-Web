@@ -1,19 +1,22 @@
 use eframe::egui::{Button, Key, TextEdit, Ui, Vec2};
+use std::sync::{Arc, Mutex};
 
 use crate::core::MainWindow;
-use crate::{AppEvent, EventBus};
+use crate::network::get_ws_password;
+use crate::{AppEvent, EventBus, RequestStatus};
 
-#[derive(Default, serde::Deserialize, serde::Serialize)]
-pub struct PasswordStatus {
+#[derive(Default)]
+pub struct Password {
     pub pass: String,
     show_pass: bool,
     pass_authenticated: bool,
     authenticating: bool,
     temp_pass: String,
     textbox_size: f32,
+    req_status: Arc<Mutex<RequestStatus>>,
 }
 
-impl PasswordStatus {
+impl Password {
     pub fn pass_authenticated(&self) -> bool {
         self.pass_authenticated
     }
@@ -102,7 +105,7 @@ impl PasswordStatus {
 
             if text_edit_box.has_focus() && enter_pressed && !self.authenticating {
                 self.authenticating = true;
-                event_bus.publish(AppEvent::StartWsConnection);
+                get_ws_password(self.pass.clone(), self.req_status.clone());
             }
 
             if ui
@@ -119,8 +122,19 @@ impl PasswordStatus {
         ui.add_space(10.0);
         if self.add_submit_button(ui) {
             self.authenticating = true;
-            event_bus.publish(AppEvent::StartWsConnection)
+            get_ws_password(self.pass.clone(), self.req_status.clone());
         }
+        let password: &mut RequestStatus = &mut self.req_status.lock().unwrap();
+        match password {
+            RequestStatus::Gotten(pass) => {
+                event_bus.publish(AppEvent::StartWebsocket(pass.to_string()));
+                *password = RequestStatus::None;
+            }
+            RequestStatus::Failed(e) => {
+                event_bus.publish(AppEvent::PasswordFailed(e.to_string()));
+            }
+            _ => {}
+        };
         self.add_info_text(ui);
     }
 }
