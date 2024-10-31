@@ -40,7 +40,9 @@ pub enum AppEvent {
     DateChanged,
     CompareDate,
     CompareVisibility,
-    StartWsConnection,
+    PasswordSubmitted,
+    PasswordFailed(String),
+    StartWebsocket(String),
     TableUpdateDate(NaiveDate, i64),
     CellsCopied,
     GuildChanged,
@@ -79,71 +81,29 @@ pub enum ColumnName {
     #[default]
     Name,
     Username,
+    #[strum(to_string = "User ID")]
     UserID,
+    #[strum(to_string = "Total Message")]
     TotalMessage,
+    #[strum(to_string = "Total Word")]
     TotalWord,
+    #[strum(to_string = "Total Char")]
     TotalChar,
+    #[strum(to_string = "Average Word")]
     AverageWord,
+    #[strum(to_string = "Average Char")]
     AverageChar,
+    #[strum(to_string = "First Message Seen")]
     FirstMessageSeen,
+    #[strum(to_string = "Last Message Seen")]
     LastMessageSeen,
 }
 
-impl ColumnName {
-    pub fn get_next(&self) -> Self {
-        match self {
-            ColumnName::Name => ColumnName::Username,
-            ColumnName::Username => ColumnName::UserID,
-            ColumnName::UserID => ColumnName::TotalMessage,
-            ColumnName::TotalMessage => ColumnName::TotalWord,
-            ColumnName::TotalWord => ColumnName::TotalChar,
-            ColumnName::TotalChar => ColumnName::AverageWord,
-            ColumnName::AverageWord => ColumnName::AverageChar,
-            ColumnName::AverageChar => ColumnName::FirstMessageSeen,
-            ColumnName::FirstMessageSeen => ColumnName::LastMessageSeen,
-            ColumnName::LastMessageSeen => ColumnName::Name,
-        }
-    }
-
-    pub fn get_previous(&self) -> Self {
-        match self {
-            ColumnName::Name => ColumnName::LastMessageSeen,
-            ColumnName::Username => ColumnName::Name,
-            ColumnName::UserID => ColumnName::Username,
-            ColumnName::TotalMessage => ColumnName::UserID,
-            ColumnName::TotalWord => ColumnName::TotalMessage,
-            ColumnName::TotalChar => ColumnName::TotalWord,
-            ColumnName::AverageWord => ColumnName::TotalChar,
-            ColumnName::AverageChar => ColumnName::AverageWord,
-            ColumnName::FirstMessageSeen => ColumnName::AverageChar,
-            ColumnName::LastMessageSeen => ColumnName::FirstMessageSeen,
-        }
-    }
-
-    pub fn from_num(num: i32) -> Self {
-        match num {
-            0 => ColumnName::Name,
-            1 => ColumnName::Username,
-            2 => ColumnName::UserID,
-            3 => ColumnName::TotalMessage,
-            4 => ColumnName::TotalWord,
-            5 => ColumnName::TotalChar,
-            6 => ColumnName::AverageWord,
-            7 => ColumnName::AverageChar,
-            8 => ColumnName::FirstMessageSeen,
-            9 => ColumnName::LastMessageSeen,
-            _ => unreachable!("Invalid enum variant for number {}", num),
-        }
-    }
-
-    pub fn get_last() -> Self {
-        ColumnName::LastMessageSeen
-    }
-}
-
 #[derive(Default)]
-pub enum SortOrder {
+pub enum RequestStatus {
     #[default]
-    Ascending,
-    Descending,
+    None,
+    Pending,
+    Gotten(String),
+    Failed(String),
 }

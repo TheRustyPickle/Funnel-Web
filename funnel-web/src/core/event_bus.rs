@@ -1,9 +1,12 @@
 use eframe::egui::Context;
+use ewebsock::Options;
+use log::{error, info};
 use std::collections::VecDeque;
 
 use crate::core::MainWindow;
-use crate::web_worker::WorkerMessage;
 use crate::{AppEvent, AppStatus};
+
+const WS_URL: &str = "wss://127.0.0.1:8081/ws";
 
 impl MainWindow {
     pub fn check_event(&mut self, ctx: &Context) {
@@ -25,11 +28,31 @@ impl MainWindow {
                     // self.tabs.set_overview_compare(self.panels.show_compared());
                 }
                 // Pressed on submit
-                AppEvent::StartWsConnection => {
-                    let password = self.password.pass.clone();
-                    self.send(WorkerMessage::StartConnection(password));
+                AppEvent::PasswordSubmitted => {
+                    info!("Password submitted");
                     self.panels.set_app_status(AppStatus::CheckingAuth);
                 }
+                AppEvent::PasswordFailed(error) => {
+                    error!("Failed to authenticate. Reason: {error}");
+                    self.password.failed_connection();
+                    self.panels.set_app_status(AppStatus::FailedAuth(error));
+                }
+                AppEvent::StartWebsocket(pass) => {
+                    let options = Options::default();
+                    let result = ewebsock::connect(WS_URL, options);
+                    match result {
+                        Ok((sender, receiver)) => {
+                            self.set_channels(sender, receiver);
+                            self.password.set_temp_pass(pass);
+                        }
+                        Err(e) => {
+                            info!("Failed to connect to WS. Reason: {e}");
+                            self.password.failed_connection();
+                            self.panels.set_app_status(AppStatus::FailedWs(e));
+                        }
+                    }
+                }
+
                 // Messages were gotten from the server and table is asking to update the earliest
                 // to the latest date with at least 1 message
                 AppEvent::TableUpdateDate(date, guild_id) => {
