@@ -21,11 +21,10 @@ impl MainWindow {
                     let guild_id = self.panels.selected_guild();
                     let date_handler = self.panels.current_date_handler();
                     self.tabs.set_date_handler(guild_id, date_handler);
-                    self.tabs.recreate_rows(guild_id);
+                    self.tabs.recreate_rows(guild_id, &mut self.event_bus);
                 }
-                AppEvent::CompareDate => {}
-                AppEvent::CompareVisibility => {
-                    // self.tabs.set_overview_compare(self.panels.show_compared());
+                AppEvent::CompareDate => {
+                    // let guild_id = self.panels.selected_guild();
                 }
                 // Pressed on submit
                 AppEvent::PasswordSubmitted => {
@@ -58,12 +57,13 @@ impl MainWindow {
                 AppEvent::TableUpdateDate(date, guild_id) => {
                     let date_handler = self.panels.date_update(date, guild_id);
                     self.tabs.set_date_handler(guild_id, date_handler);
-                    self.tabs.recreate_rows(guild_id);
+                    self.tabs.recreate_rows(guild_id, &mut self.event_bus);
                 }
                 AppEvent::CellsCopied => self.panels.set_app_status(AppStatus::CellsCopied),
                 AppEvent::GuildChanged => {
                     self.tabs.set_current_guild(self.panels.selected_guild());
                 }
+                AppEvent::TableReloaded(guild_id) => self.tabs.reload_overview(guild_id),
             }
         }
         ctx.request_repaint();

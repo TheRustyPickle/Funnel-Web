@@ -1,7 +1,7 @@
-mod animated_label;
-mod animated_menu_label;
 mod card;
+mod horizontal_label;
+mod vertical_label;
 
-pub use animated_label::*;
-pub use animated_menu_label::*;
 pub use card::*;
+pub use horizontal_label::*;
+pub use vertical_label::*;

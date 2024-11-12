@@ -39,13 +39,13 @@ pub enum NavigationType {
 pub enum AppEvent {
     DateChanged,
     CompareDate,
-    CompareVisibility,
     PasswordSubmitted,
     PasswordFailed(String),
     StartWebsocket(String),
     TableUpdateDate(NaiveDate, i64),
     CellsCopied,
     GuildChanged,
+    TableReloaded(i64),
 }
 
 #[derive(Default, Display)]

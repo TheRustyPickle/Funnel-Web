@@ -76,7 +76,7 @@ impl DateHandler {
         needs_update
     }
 
-    /// Whether the given date is whtin the current From and To range
+    /// Whether the given date is within the current From and To range
     pub fn within_range(&self, date: NaiveDate) -> bool {
         date >= self.from && date <= self.to
     }

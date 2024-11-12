@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Message {
     pub guild_id: i64,
     pub channel_id: i64,
@@ -11,14 +11,14 @@ pub struct Message {
     pub stripped_content: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct User {
     pub user_id: i64,
     pub global_name: Option<String>,
     pub username: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct MessageWithUser {
     pub message: Message,
     pub sender: User,

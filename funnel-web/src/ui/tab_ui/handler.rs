@@ -1,7 +1,7 @@
 use eframe::egui::Ui;
 use std::collections::HashMap;
 
-use crate::ui::{Overview, UserTable};
+use crate::ui::{DateHandler, Overview, UserTable};
 use crate::{EventBus, TabState};
 
 #[derive(Default)]
@@ -49,6 +49,17 @@ impl TabHandler {
 
     pub fn set_current_guild(&mut self, id: i64) {
         self.current_guild = id;
+    }
+
+    pub fn set_date_handler(&mut self, guild_id: i64, handler: DateHandler) {
+        self.overview
+            .get_mut(&guild_id)
+            .unwrap()
+            .set_date_handler(handler);
+        self.user_table
+            .get_mut(&guild_id)
+            .unwrap()
+            .set_date_handler(handler);
     }
 }
 

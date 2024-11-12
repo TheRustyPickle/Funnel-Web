@@ -20,6 +20,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 let guild_id = guild.guild.guild_id;
                 window.send_ws(Request::get_messages(guild_id, 1));
                 window.tabs.set_data(guild_id);
+                window
+                    .tabs
+                    .set_channel_map(guild.guild.guild_id, guild.channels.clone())
             }
             window.panels.set_guild_channels(guilds);
             window
@@ -28,7 +31,7 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
         }
         Response::Messages(guild_id, messages) => {
             if messages.is_empty() {
-                window.tabs.recreate_rows(guild_id);
+                window.tabs.recreate_rows(guild_id, &mut window.event_bus);
                 return None;
             }
 
@@ -39,11 +42,14 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 window.send_ws(Request::get_messages(guild_id, current_page + 1));
             }
             for message in messages {
-                window.tabs.handle_message(message, &mut window.event_bus)
+                window
+                    .tabs
+                    .handle_message_user_table(message.clone(), &mut window.event_bus);
+                window.tabs.handle_message_overview(message);
             }
 
             if !do_new_page {
-                window.tabs.recreate_rows(guild_id);
+                window.tabs.recreate_rows(guild_id, &mut window.event_bus);
             }
         }
         Response::Error(_) => unreachable!(),

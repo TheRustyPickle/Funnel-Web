@@ -119,8 +119,7 @@ impl DateNavigator {
             .on_hover_text("Compare data from within this period with the current overview data")
             .clicked()
         {
-            event_bus.publish(AppEvent::CompareVisibility);
-            self.handler.reset_dates();
+            event_bus.publish(AppEvent::CompareDate);
         }
 
         ui.separator();

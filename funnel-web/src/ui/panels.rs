@@ -16,7 +16,6 @@ pub struct PanelStatus {
     tab_state: TabState,
     show_guild: bool,
     show_channel: bool,
-    show_compared: bool,
     dot_count: usize,
     date_nav: Vec<DateNavigator>,
     app_status: AppStatus,
@@ -36,7 +35,6 @@ impl Default for PanelStatus {
             tab_state: TabState::default(),
             show_guild: true,
             show_channel: true,
-            show_compared: false,
             dot_count: 0,
             date_nav: vec![DateNavigator::default()],
             app_status: AppStatus::default(),
@@ -82,7 +80,7 @@ impl PanelStatus {
                     ui.set_style(ctx.style());
                     ui.separator();
                     if ui
-                        .selectable_label(self.show_guild, "Show Guild List")
+                        .selectable_label(self.show_guild, "Guild List")
                         .on_hover_text("Show/Hide Guild List")
                         .clicked()
                     {
@@ -90,7 +88,7 @@ impl PanelStatus {
                     };
                     ui.separator();
                     if ui
-                        .selectable_label(self.show_channel, "Show Channel List")
+                        .selectable_label(self.show_channel, "Channel List")
                         .on_hover_text("Show/Hide Channel List")
                         .clicked()
                     {
@@ -98,18 +96,6 @@ impl PanelStatus {
                     };
                     ui.separator();
                     self.date_nav[self.selected_guild].show_ui(ui, pass_authenticated, event_bus);
-
-                    if self.tab_state == TabState::first_value() && pass_authenticated {
-                        ui.separator();
-                        if ui
-                            .selectable_label(self.show_compared, "Compare Data")
-                            .on_hover_text("Show/Hide UI of comparing overivew data")
-                            .clicked()
-                        {
-                            self.show_compared = !self.show_compared;
-                            event_bus.publish(AppEvent::CompareVisibility);
-                        };
-                    }
                 });
 
                 ui.add_space(0.5);
@@ -414,10 +400,6 @@ impl PanelStatus {
         self.guild_changed = true;
         self.reset_guild_anim = true;
         self.date_nav = date_list;
-    }
-
-    pub fn show_compared(&self) -> bool {
-        self.show_compared
     }
 
     pub fn date_update(&mut self, date: NaiveDate, guild_id: i64) -> DateHandler {

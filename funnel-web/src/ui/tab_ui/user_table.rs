@@ -4,8 +4,7 @@ use egui_extras::Column;
 use egui_selectable_table::{
     ColumnOperations, ColumnOrdering, SelectableRow, SelectableTable, SortOrder,
 };
-use funnel_shared::MessageWithUser;
-use funnel_shared::PAGE_VALUE;
+use funnel_shared::{MessageWithUser, PAGE_VALUE};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
@@ -345,7 +344,7 @@ impl UserTable {
         user_row_data.increment_total_char(total_char);
 
         if self.reload_count == PAGE_VALUE * 3 {
-            self.create_rows();
+            self.create_rows(guild_id, event_bus);
         }
     }
 
@@ -354,7 +353,8 @@ impl UserTable {
     }
 
     /// Create the rows that will be shown in the UI.
-    fn create_rows(&mut self) {
+    fn create_rows(&mut self, guild_id: i64, event_bus: &mut EventBus) {
+        event_bus.publish(AppEvent::TableReloaded(guild_id));
         self.reload_count = 0;
         self.table.clear_all_rows();
         let mut total_message = 0;
@@ -401,23 +401,24 @@ impl UserTable {
         self.table.recreate_rows();
     }
 
-    fn set_date_handler(&mut self, handler: DateHandler) {
+    pub fn set_date_handler(&mut self, handler: DateHandler) {
         self.date_handler = handler;
     }
 }
 
 impl TabHandler {
-    pub fn set_date_handler(&mut self, guild_id: i64, handler: DateHandler) {
+    pub fn recreate_rows(&mut self, guild_id: i64, event_bus: &mut EventBus) {
         self.user_table
             .get_mut(&guild_id)
             .unwrap()
-            .set_date_handler(handler);
-    }
-    pub fn recreate_rows(&mut self, guild_id: i64) {
-        self.user_table.get_mut(&guild_id).unwrap().create_rows();
+            .create_rows(guild_id, event_bus);
     }
 
-    pub fn handle_message(&mut self, message: MessageWithUser, event_bus: &mut EventBus) {
+    pub fn handle_message_user_table(
+        &mut self,
+        message: MessageWithUser,
+        event_bus: &mut EventBus,
+    ) {
         let guild_id = message.message.guild_id;
         self.user_table
             .get_mut(&guild_id)
