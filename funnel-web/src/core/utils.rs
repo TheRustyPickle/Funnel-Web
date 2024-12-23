@@ -1,5 +1,6 @@
 use eframe::egui::{Context, FontData, FontDefinitions, FontFamily, RichText};
 use std::fmt::Display;
+use std::sync::Arc;
 
 use crate::core::JET;
 
@@ -10,7 +11,7 @@ pub fn to_header(text: impl Display) -> RichText {
 pub fn add_font(ctx: &Context) {
     let name = "jetbrains";
     let font = JET;
-    let font_caska = FontData::from_owned(font.into());
+    let font_caska = Arc::new(FontData::from_owned(font.into()));
     let mut font_definitions = FontDefinitions::default();
     font_definitions
         .font_data
