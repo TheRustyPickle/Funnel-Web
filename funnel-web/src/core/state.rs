@@ -46,6 +46,7 @@ pub enum AppEvent {
     CellsCopied,
     GuildChanged,
     TableReloaded(i64),
+    StopCompareOverview
 }
 
 #[derive(Default, Display)]

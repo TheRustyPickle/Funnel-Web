@@ -24,7 +24,8 @@ impl MainWindow {
                     self.tabs.recreate_rows(guild_id, &mut self.event_bus);
                 }
                 AppEvent::CompareDate => {
-                    // let guild_id = self.panels.selected_guild();
+                    let guild_id = self.panels.selected_guild();
+                    self.tabs.compare_overview(guild_id);
                 }
                 // Pressed on submit
                 AppEvent::PasswordSubmitted => {
@@ -64,6 +65,10 @@ impl MainWindow {
                     self.tabs.set_current_guild(self.panels.selected_guild());
                 }
                 AppEvent::TableReloaded(guild_id) => self.tabs.reload_overview(guild_id),
+                AppEvent::StopCompareOverview => {
+                    let guild_id = self.panels.selected_guild();
+                    self.tabs.stop_compare_overview(guild_id)
+                }
             }
         }
         ctx.request_repaint();

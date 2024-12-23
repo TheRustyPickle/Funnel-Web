@@ -122,6 +122,15 @@ impl DateNavigator {
             event_bus.publish(AppEvent::CompareDate);
         }
 
+
+        if ui
+            .add(Button::new("Reset Compare"))
+            .on_hover_text("Stop comparing the overview data")
+            .clicked()
+        {
+            event_bus.publish(AppEvent::StopCompareOverview);
+        }
+
         ui.separator();
 
         let hover_position = ui.make_persistent_id("compare_navigation_hover");

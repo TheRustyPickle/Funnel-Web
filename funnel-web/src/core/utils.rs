@@ -29,3 +29,15 @@ pub fn add_font(ctx: &Context) {
         .push(name.to_owned());
     ctx.set_fonts(font_definitions);
 }
+
+pub fn compare_number(old_num: u32, new_num: u32) -> String {
+    let old_num = old_num as f32;
+    let new_num = new_num as f32;
+    let difference = ((new_num - old_num) / old_num) * 100.0;
+    if difference > 0.0 {
+        format!("{:.2}% ↑", difference)
+    } else {
+        let difference = difference.abs();
+        format!("{:.2}% ↓", difference)
+    }
+}
