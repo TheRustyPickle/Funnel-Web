@@ -4,15 +4,29 @@ use std::collections::HashMap;
 use crate::ui::{DateHandler, Overview, UserTable};
 use crate::{EventBus, TabState};
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub enum ReloadTab {
+    Overview,
+    Table,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct PendingReload {
+    guild_id: i64,
+    reload_type: ReloadTab,
+}
+
 #[derive(Default)]
 pub struct TabHandler {
     pub current_guild: i64,
     pub overview: HashMap<i64, Overview>,
     pub user_table: HashMap<i64, UserTable>,
+    pub pending_reloads: Vec<PendingReload>,
 }
 
 impl TabHandler {
     pub fn show_tab_ui(&mut self, ui: &mut Ui, state: TabState, event_bus: &mut EventBus) {
+        self.process_pending_reloads(&state);
         let mut show_ui = |data: Option<&mut dyn ShowUI>| {
             if let Some(item) = data {
                 item.show_ui(ui, event_bus);
@@ -42,6 +56,20 @@ impl TabHandler {
         }
     }
 
+    pub fn add_reload(&mut self, guild_id: i64, reload_type: ReloadTab) {
+        let existing_reload = self
+            .pending_reloads
+            .iter()
+            .any(|reload| reload.reload_type == reload_type);
+
+        if !existing_reload {
+            self.pending_reloads.push(PendingReload {
+                guild_id,
+                reload_type,
+            });
+        }
+    }
+
     pub fn set_data(&mut self, id: i64) {
         self.overview.insert(id, Overview::default());
         self.user_table.insert(id, UserTable::default());
@@ -60,6 +88,35 @@ impl TabHandler {
             .get_mut(&guild_id)
             .unwrap()
             .set_date_handler(handler);
+    }
+
+    pub fn process_pending_reloads(&mut self, state: &TabState) {
+        let mut to_remove_indices = Vec::new();
+
+        for (index, pending_reload) in self.pending_reloads.clone().iter().enumerate() {
+            if pending_reload.guild_id != self.current_guild {
+                continue;
+            }
+            match pending_reload.reload_type {
+                ReloadTab::Overview => {
+                    if TabState::Overview == *state {
+                        self.reload_overview(pending_reload.guild_id);
+                        to_remove_indices.push(index);
+                    }
+                }
+                ReloadTab::Table => {
+                    if TabState::UserTable == *state {
+                        self.recreate_rows(pending_reload.guild_id);
+                        to_remove_indices.push(index);
+                    }
+                }
+            }
+        }
+
+        // Remove items in reverse order to avoid index shifting
+        for &index in to_remove_indices.iter().rev() {
+            self.pending_reloads.remove(index);
+        }
     }
 }
 

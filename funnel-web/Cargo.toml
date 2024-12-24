@@ -25,11 +25,11 @@ egui_plot = "0.30.0"
 ehttp = "0.5.0"
 ewebsock = "0.8.0"
 funnel-shared = { workspace = true }
-image = "0.25.4"
+image = "0.25.5"
 log = "0.4.22"
 serde = { workspace = true }
 serde_json = { workspace = true }
 strum = "0.26.3"
 strum_macros = "0.26.4"
 wasm-bindgen-futures = "0.4.49"
-web-sys = "0.3.72"
+web-sys = "0.3.76"

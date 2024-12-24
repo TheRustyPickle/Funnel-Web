@@ -36,6 +36,7 @@ pub enum NavigationType {
     Year,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum AppEvent {
     DateChanged,
     CompareDate,
@@ -43,10 +44,11 @@ pub enum AppEvent {
     PasswordFailed(String),
     StartWebsocket(String),
     TableUpdateDate(NaiveDate, i64),
+    TableNeedsReload(i64),
+    OverviewNeedsReload(i64),
     CellsCopied,
     GuildChanged,
-    TableReloaded(i64),
-    StopCompareOverview
+    StopCompareOverview,
 }
 
 #[derive(Default, Display)]

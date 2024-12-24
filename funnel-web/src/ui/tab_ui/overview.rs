@@ -1,11 +1,11 @@
 use chrono::{DateTime, NaiveDate};
 use eframe::egui::Ui;
-use funnel_shared::{Channel, MessageWithUser};
+use funnel_shared::{Channel, MessageWithUser, PAGE_VALUE};
 use std::collections::HashMap;
 
 use crate::core::{compare_number, to_header};
 use crate::ui::{Card, DateHandler, DateNavigator, ShowUI, TabHandler};
-use crate::EventBus;
+use crate::{AppEvent, EventBus};
 
 #[derive(Default, Debug)]
 pub struct ActivityData {
@@ -48,6 +48,7 @@ pub struct Overview {
     compare_size: f32,
     date_handler: DateHandler,
     max_content: usize,
+    reload_count: u64,
 }
 
 impl ShowUI for Overview {
@@ -89,7 +90,6 @@ impl ShowUI for Overview {
                 ui.ctx().animate_value_with_time(space_3_item, 0.0, 0.0);
                 ui.ctx().animate_value_with_time(space_2_item, 0.0, 0.0);
             }
-
 
             ui.horizontal(|ui| {
                 ui.add_space(space_3);
@@ -215,9 +215,10 @@ impl Overview {
         ui.add_space(10.0);
     }
 
-    fn handle_message(&mut self, message: MessageWithUser) {
+    fn handle_message(&mut self, message: MessageWithUser, event_bus: &mut EventBus) {
         let username = &message.sender.username;
         let channel_id = message.message.channel_id;
+        let guild_id = message.message.guild_id;
 
         let timestamp = &message.message.message_timestamp;
 
@@ -232,12 +233,18 @@ impl Overview {
 
         let count_entry = target_entry.message_count.entry(channel_id).or_default();
         *count_entry += 1;
+        self.reload_count += 1;
+
+        if self.reload_count == PAGE_VALUE * 5 {
+            event_bus.publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
+        }
     }
 
     fn reload_overview(&mut self) {
         let mut channel_message_count = HashMap::new();
         let mut member_message_count = HashMap::new();
         let mut total_message = 0;
+        self.reload_count = 0;
 
         self.activity_data
             .iter()
@@ -355,12 +362,12 @@ impl Overview {
 }
 
 impl TabHandler {
-    pub fn handle_message_overview(&mut self, message: MessageWithUser) {
+    pub fn handle_message_overview(&mut self, message: MessageWithUser, event_bus: &mut EventBus) {
         let guild_id = message.message.guild_id;
         self.overview
             .get_mut(&guild_id)
             .unwrap()
-            .handle_message(message)
+            .handle_message(message, event_bus)
     }
 
     pub fn set_channel_map(&mut self, guild_id: i64, channels: Vec<Channel>) {

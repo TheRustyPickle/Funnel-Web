@@ -343,8 +343,8 @@ impl UserTable {
         user_row_data.increment_total_word(total_word);
         user_row_data.increment_total_char(total_char);
 
-        if self.reload_count == PAGE_VALUE * 3 {
-            self.create_rows(guild_id, event_bus);
+        if self.reload_count == PAGE_VALUE * 5 {
+            event_bus.publish_if_needed(AppEvent::TableNeedsReload(guild_id));
         }
     }
 
@@ -353,8 +353,7 @@ impl UserTable {
     }
 
     /// Create the rows that will be shown in the UI.
-    fn create_rows(&mut self, guild_id: i64, event_bus: &mut EventBus) {
-        event_bus.publish(AppEvent::TableReloaded(guild_id));
+    fn create_rows(&mut self) {
         self.reload_count = 0;
         self.table.clear_all_rows();
         let mut total_message = 0;
@@ -407,11 +406,8 @@ impl UserTable {
 }
 
 impl TabHandler {
-    pub fn recreate_rows(&mut self, guild_id: i64, event_bus: &mut EventBus) {
-        self.user_table
-            .get_mut(&guild_id)
-            .unwrap()
-            .create_rows(guild_id, event_bus);
+    pub fn recreate_rows(&mut self, guild_id: i64) {
+        self.user_table.get_mut(&guild_id).unwrap().create_rows();
     }
 
     pub fn handle_message_user_table(
