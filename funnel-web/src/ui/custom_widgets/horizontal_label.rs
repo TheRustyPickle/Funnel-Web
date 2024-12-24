@@ -72,7 +72,11 @@ impl Widget for AnimatedMenuLabel {
             // stuttering in the UI
             // For whatever reason 4.0 is the magic number that maintains correct x distance between
             // the widgets. Or at least close to that.
-            let painter = ui.painter();
+            let painter = ui
+                .painter()
+                .clone()
+                .with_layer_id(LayerId::new(Order::Background, Id::new("separator_left")));
+            // let painter = ui.painter();
             let fixed_line_x = painter.round_to_pixel_center(rect.min.x - 4.0);
             let color = ui.visuals().widgets.noninteractive.fg_stroke.color;
             let stroke = Stroke::new(1.0, color);
@@ -182,7 +186,11 @@ impl Widget for AnimatedMenuLabel {
                 .galley(text_pos, text_galley, visuals.text_color());
 
             if separator_right {
-                let painter = ui.painter();
+                let painter = ui
+                    .painter()
+                    .clone()
+                    .with_layer_id(LayerId::new(Order::Background, Id::new("separator_right")));
+
                 let fixed_line_x = painter.round_to_pixel_center(rect.max.x + 4.0);
                 let color = ui.visuals().widgets.noninteractive.fg_stroke.color;
                 let stroke = Stroke::new(1.0, color);
