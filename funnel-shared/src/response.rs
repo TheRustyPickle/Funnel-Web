@@ -3,13 +3,20 @@ use serde_json::Error;
 
 pub const PAGE_VALUE: u64 = 5000;
 
-use crate::{GuildWithChannels, MessageWithUser};
+use crate::{GuildWithChannels, MemberCount, MessageWithUser};
 
 #[derive(Serialize, Deserialize)]
 pub enum Response {
     Guilds(Vec<GuildWithChannels>),
     AuthenticationSuccess,
-    Messages(i64, Vec<MessageWithUser>),
+    Messages {
+        guild_id: i64,
+        messages: Vec<MessageWithUser>,
+    },
+    MemberCounts {
+        guild_id: i64,
+        counts: Vec<MemberCount>,
+    },
     Error(ErrorType),
 }
 
@@ -98,7 +105,15 @@ impl WsResponse {
         let status = Status::success(page);
         Self {
             status,
-            response: Response::Messages(guild_id, messages),
+            response: Response::Messages { guild_id, messages },
+        }
+    }
+
+    pub fn member_count(guild_id: i64, counts: Vec<MemberCount>, page: u64) -> Self {
+        let status = Status::success(page);
+        Self {
+            status,
+            response: Response::MemberCounts { guild_id, counts },
         }
     }
 

@@ -6,6 +6,7 @@ pub enum Request {
     Authenticate(String),
     GetAllGuilds,
     GetMessages { guild_id: i64, page: u64 },
+    GetGuildMemberCount { guild_id: i64, page: u64 },
 }
 
 impl Request {
@@ -19,6 +20,10 @@ impl Request {
 
     pub fn get_messages(guild_id: i64, page: u64) -> Self {
         Request::GetMessages { guild_id, page }
+    }
+
+    pub fn get_member_counts(guild_id: i64, page: u64) -> Self {
+        Request::GetGuildMemberCount { guild_id, page }
     }
 
     pub fn to_json(self) -> String {
