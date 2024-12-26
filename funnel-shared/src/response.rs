@@ -8,7 +8,7 @@ use crate::{GuildWithChannels, MemberCount, MessageWithUser};
 #[derive(Serialize, Deserialize)]
 pub enum Response {
     Guilds(Vec<GuildWithChannels>),
-    AuthenticationSuccess,
+    ConnectionSuccess,
     Messages {
         guild_id: i64,
         messages: Vec<MessageWithUser>,
@@ -49,8 +49,7 @@ impl Status {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ErrorType {
-    AuthenticationFailed(String),
-    ClientNotAuthenticated,
+    ClientNotConnected,
     UnknowError(String),
 }
 
@@ -77,27 +76,19 @@ impl WsResponse {
         }
     }
 
-    pub fn authentication_success() -> Self {
+    pub fn connection_success() -> Self {
         let status = Status::success(0);
         Self {
             status,
-            response: Response::AuthenticationSuccess,
+            response: Response::ConnectionSuccess,
         }
     }
 
-    pub fn authentication_failed(message: String) -> Self {
+    pub fn not_connected() -> Self {
         let status = Status::error();
         Self {
             status,
-            response: Response::Error(ErrorType::AuthenticationFailed(message)),
-        }
-    }
-
-    pub fn not_authenticated() -> Self {
-        let status = Status::error();
-        Self {
-            status,
-            response: Response::Error(ErrorType::ClientNotAuthenticated),
+            response: Response::Error(ErrorType::ClientNotConnected),
         }
     }
 

@@ -13,16 +13,15 @@ impl MainWindow {
                     WsEvent::Closed => {
                         info!("Connection to WS has been closed");
                         self.remove_channels();
-                        self.password.failed_connection();
+                        self.connection.failed_connection();
                     }
                     WsEvent::Error(e) => {
                         error!("Error in ws. Reason: {e}");
                     }
                     WsEvent::Opened => {
                         info!("Connection to WS has been opened");
-                        self.send_ws(Request::auth(self.password.temp_pass()));
-                        self.password.set_authenticated();
-                        self.password.clear_pass();
+                        self.send_ws(Request::StartConnection);
+                        self.connection.set_connected();
                     }
                     WsEvent::Message(message) => {
                         if let WsMessage::Text(text) = message {

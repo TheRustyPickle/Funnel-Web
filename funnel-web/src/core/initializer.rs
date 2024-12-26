@@ -6,13 +6,13 @@ use ewebsock::{WsReceiver, WsSender};
 use funnel_shared::Request;
 
 use crate::core::add_font;
-use crate::ui::{PanelStatus, Password, TabHandler};
+use crate::ui::{Connection, PanelStatus, TabHandler};
 use crate::EventBus;
 
 pub const JET: &[u8] = include_bytes!("../../../fonts/jetbrains_nerd_propo_regular.ttf");
 
 pub struct MainWindow {
-    pub password: Password,
+    pub connection: Connection,
     pub panels: PanelStatus,
     pub tabs: TabHandler,
     pub event_bus: EventBus,
@@ -40,7 +40,7 @@ impl MainWindow {
         add_font(&ctx);
 
         Self {
-            password: Password::default(),
+            connection: Connection::default(),
             panels: PanelStatus::default(),
             tabs: TabHandler::default(),
             event_bus: EventBus::default(),

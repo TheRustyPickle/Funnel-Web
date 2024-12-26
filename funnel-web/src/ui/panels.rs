@@ -51,12 +51,7 @@ impl Default for PanelStatus {
 }
 
 impl PanelStatus {
-    fn show_upper_bar(
-        &mut self,
-        ctx: &Context,
-        pass_authenticated: bool,
-        event_bus: &mut EventBus,
-    ) {
+    fn show_upper_bar(&mut self, ctx: &Context, connected: bool, event_bus: &mut EventBus) {
         TopBottomPanel::top("upper_bar")
             .show_separator_line(false)
             .show(ctx, |ui| {
@@ -95,7 +90,7 @@ impl PanelStatus {
                         self.show_channel = !self.show_channel;
                     };
                     ui.separator();
-                    self.date_nav[self.selected_guild].show_ui(ui, pass_authenticated, event_bus);
+                    self.date_nav[self.selected_guild].show_ui(ui, connected, event_bus);
                 });
 
                 ui.add_space(0.5);
@@ -434,12 +429,12 @@ impl PanelStatus {
 impl MainWindow {
     pub fn show_panels(&mut self, ctx: &Context) {
         self.panels
-            .show_upper_bar(ctx, self.password.pass_authenticated(), &mut self.event_bus);
+            .show_upper_bar(ctx, self.connection.connected(), &mut self.event_bus);
         self.panels.show_left_bar(ctx, &mut self.event_bus);
         self.panels.show_right_bar(ctx);
         self.panels.show_bottom_bar(ctx);
 
-        if self.password.pass_authenticated() {
+        if self.connection.connected() {
             self.panels.show_top_bar(ctx);
         }
 
@@ -450,8 +445,8 @@ impl MainWindow {
                 self.panels.theme_animator.animate(ctx)
             };
 
-            if !self.password.pass_authenticated() {
-                self.password.show_pass_ui(ui, &mut self.event_bus);
+            if !self.connection.connected() {
+                self.connection.show_start_ui(ui, &mut self.event_bus);
             } else {
                 self.tabs
                     .show_tab_ui(ui, self.panels.tab_state, &mut self.event_bus);

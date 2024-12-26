@@ -31,27 +31,18 @@ impl MainWindow {
                     let guild_id = self.panels.selected_guild();
                     self.tabs.compare_overview(guild_id);
                 }
-                // Pressed on submit
-                AppEvent::PasswordSubmitted => {
-                    info!("Password submitted");
-                    self.panels.set_app_status(AppStatus::CheckingAuth);
-                }
-                AppEvent::PasswordFailed(error) => {
-                    error!("Failed to authenticate. Reason: {error}");
-                    self.password.failed_connection();
-                    self.panels.set_app_status(AppStatus::FailedAuth(error));
-                }
-                AppEvent::StartWebsocket(pass) => {
+                AppEvent::StartWebsocket => {
+                    info!("Start connection to the websocket");
+                    self.panels.set_app_status(AppStatus::ConnectingToWs);
                     let options = Options::default();
                     let result = ewebsock::connect(WS_URL, options);
                     match result {
                         Ok((sender, receiver)) => {
                             self.set_channels(sender, receiver);
-                            self.password.set_temp_pass(pass);
                         }
                         Err(e) => {
-                            info!("Failed to connect to WS. Reason: {e}");
-                            self.password.failed_connection();
+                            error!("Failed to connect to WS. Reason: {e}");
+                            self.connection.failed_connection();
                             self.panels.set_app_status(AppStatus::FailedWs(e));
                         }
                     }

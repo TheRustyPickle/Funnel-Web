@@ -10,8 +10,8 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
     }
 
     match response.response {
-        Response::AuthenticationSuccess => {
-            info!("Client successfully authenticated. Getting guild list");
+        Response::ConnectionSuccess => {
+            info!("Client successfully connected. Getting guild list");
             window.panels.set_app_status(AppStatus::Fetching);
             window.send_ws(Request::guilds());
         }
@@ -80,18 +80,13 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
 
 fn handle_errors(window: &mut MainWindow, error: ErrorType) {
     match error {
-        ErrorType::AuthenticationFailed(reason) => {
-            error!("Authentication attempt with the server failed. Reason: {reason}",);
-            window.password.failed_connection();
-            window.panels.set_app_status(AppStatus::FailedAuth(reason));
-        }
-        ErrorType::ClientNotAuthenticated => {
-            error!("Client is not authenticated by the server.");
-            window.password.failed_connection();
+        ErrorType::ClientNotConnected => {
+            error!("Client did not connect properly to the server");
+            window.connection.failed_connection();
             window
                 .panels
-                .set_app_status(AppStatus::FailedAuth(String::from(
-                    "Client is not authenticated",
+                .set_app_status(AppStatus::FailedWs(String::from(
+                    "Client did not connect properly to the server",
                 )));
         }
         ErrorType::UnknowError(reason) => {
