@@ -1,6 +1,6 @@
-use eframe::egui::{Button, Ui, Vec2};
+use eframe::egui::{Button, ScrollArea, TopBottomPanel, Ui, Vec2};
 
-use crate::{AppEvent, EventBus};
+use crate::{get_change_log, AppEvent, EventBus};
 
 #[derive(Default)]
 pub struct Connection {
@@ -63,5 +63,23 @@ impl Connection {
             self.connecting = true;
         }
         self.add_info_text(ui);
+
+        TopBottomPanel::bottom("change_log")
+            .show_separator_line(false)
+            .min_height(300.0)
+            .max_height(300.0)
+            .show_inside(ui, |ui| {
+                let change_logs = get_change_log();
+
+                ui.vertical_centered(|ui| ui.heading("Change Logs"));
+                ui.separator();
+                ScrollArea::vertical()
+                    .drag_to_scroll(false)
+                    .show(ui, |ui| {
+                        for log in change_logs {
+                            log.to_ui(ui);
+                        }
+                    })
+            });
     }
 }

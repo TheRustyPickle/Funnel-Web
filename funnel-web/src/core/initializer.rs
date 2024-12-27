@@ -10,6 +10,7 @@ use crate::ui::{Connection, PanelStatus, TabHandler};
 use crate::EventBus;
 
 pub const JET: &[u8] = include_bytes!("../../../fonts/jetbrains_nerd_propo_regular.ttf");
+pub const CHANGE: &[u8] = include_bytes!("../../../CHANGELOG.md");
 
 pub struct MainWindow {
     pub connection: Connection,
