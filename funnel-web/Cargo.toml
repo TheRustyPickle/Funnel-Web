@@ -22,7 +22,6 @@ egui_extras = { version = "0.30.0", features = [
     "serde",
 ] }
 egui_plot = "0.30.0"
-ehttp = "0.5.0"
 ewebsock = "0.8.0"
 funnel-shared = { workspace = true }
 image = "0.25.5"
