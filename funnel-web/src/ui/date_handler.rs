@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-#[derive(Default, Clone, Copy, Eq, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, Eq, PartialEq)]
 pub struct DateHandler {
     /// The From Date currently selected in the UI
     pub from: NaiveDate,

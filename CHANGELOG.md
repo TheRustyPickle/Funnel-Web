@@ -1,0 +1,19 @@
+# Pre-Release
+
+## 12.2024
+
+* Add the UI on the Start page to show the change log
+* Remove the password system on the initial UI and directly connect to the server using websocket
+* Fix Vertical line vanishing from top tab UI when changing tabs
+* Prevent reloading UI elements that are not selected currently and keep tab of pending reloads
+* Added relevant method to send/receive member count data from server
+* Update Overview tab to handle Comparison for total message and unique members
+* Update egui to 30.0 and other dependencies to the latest version
+
+## 11.2024
+
+* Update Overview tab to handle messages and update UI elements
+
+## 10.2024
+
+* Removed JS codes for webworker and use wasm native ehttp library

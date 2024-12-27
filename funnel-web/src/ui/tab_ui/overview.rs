@@ -1,11 +1,11 @@
 use chrono::{DateTime, NaiveDate};
-use eframe::egui::{TopBottomPanel, Ui};
-use funnel_shared::{Channel, MessageWithUser};
+use eframe::egui::Ui;
+use funnel_shared::{Channel, MessageWithUser, PAGE_VALUE};
 use std::collections::HashMap;
 
-use crate::core::to_header;
+use crate::core::{compare_number, to_header};
 use crate::ui::{Card, DateHandler, DateNavigator, ShowUI, TabHandler};
-use crate::EventBus;
+use crate::{AppEvent, EventBus};
 
 #[derive(Default, Debug)]
 pub struct ActivityData {
@@ -47,17 +47,23 @@ pub struct Overview {
     compare_nav: DateNavigator,
     compare_size: f32,
     date_handler: DateHandler,
+    max_content: usize,
+    reload_count: u64,
 }
 
 impl ShowUI for Overview {
     fn show_ui(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
-        self.show_bottom_bar(ui, event_bus);
+        self.show_compare_buttons(ui, event_bus);
 
         let space_3_item = ui.make_persistent_id("card_space_3");
         let space_2_item = ui.make_persistent_id("card_space_2");
         ui.vertical(|ui| {
-            // TODO: Modify X size based on the largest text?
-            let x_size = 250.0;
+            let has_compare = self.compare_data.is_some();
+            let x_size = if self.max_content != usize::default() && has_compare {
+                self.max_content as f32 * 12.0
+            } else {
+                250.0
+            };
             let y_size = 70.0;
 
             let mut space_3 = 0.0;
@@ -88,12 +94,27 @@ impl ShowUI for Overview {
             ui.horizontal(|ui| {
                 ui.add_space(space_3);
                 let remaining_width = ui.available_width();
+                let mut header_text = "Total Message".to_string();
+                let content_text = self.data.total_message;
+                let mut hover_text = "Total message gotten within this time period".to_string();
+                if has_compare {
+                    let comparing_with = self.compare_data.as_ref().unwrap().total_message;
+                    let difference = compare_number(comparing_with, content_text);
+                    header_text += &format!(" {difference}");
+                    let header_text_len = header_text.chars().count();
+                    if header_text_len > self.max_content {
+                        self.max_content = header_text_len
+                    }
+                    hover_text +=
+                        &format!("\nTotal message gotten in the compare time: {comparing_with}");
+                }
                 ui.add(Card::new(
-                    to_header("Total Message"),
-                    to_header(self.data.total_message),
+                    to_header(header_text),
+                    to_header(content_text),
                     x_size,
                     y_size,
-                ));
+                ))
+                .on_hover_text(hover_text);
                 let space_taken = remaining_width - ui.available_width();
                 self.card_size = space_taken;
 
@@ -104,12 +125,31 @@ impl ShowUI for Overview {
                     y_size,
                 ));
 
+                let mut header_text = "Unique User".to_string();
+                let content_text = self.data.unique_user;
+                let mut hover_text =
+                    "Total unique users gotten within this time period".to_string();
+
+                if has_compare {
+                    let comparing_with = self.compare_data.as_ref().unwrap().unique_user;
+                    let difference = compare_number(comparing_with, content_text);
+                    header_text += &format!(" {difference}");
+                    hover_text += &format!(
+                        "\nTotal unique users gotten in the compare time: {comparing_with}"
+                    );
+                    let header_text_len = header_text.chars().count();
+                    if header_text_len > self.max_content {
+                        self.max_content = header_text_len
+                    }
+                }
+
                 ui.add(Card::new(
-                    to_header("Unique User"),
-                    to_header(self.data.unique_user),
+                    to_header(header_text),
+                    to_header(content_text),
                     x_size,
                     y_size,
-                ));
+                ))
+                .on_hover_text(hover_text);
             });
 
             ui.add_space(5.0);
@@ -160,27 +200,25 @@ impl ShowUI for Overview {
 }
 // TODO: Allow comparing these numbers with a different date, show up or down %
 impl Overview {
-    fn show_bottom_bar(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
-        TopBottomPanel::bottom("bottom_panel_comparison")
-            .show_separator_line(true)
-            .show_animated_inside(ui, true, |ui| {
-                ui.add_space(10.0);
-                ui.horizontal(|ui| {
-                    let spacing_size = ui.available_width() - self.compare_size;
-                    if spacing_size > 0.0 {
-                        ui.add_space(spacing_size / 2.0);
-                    };
-                    let max_width = ui.available_width();
-                    self.compare_nav.show_ui_compare(ui, event_bus);
-                    let consumed = max_width - ui.available_width();
-                    self.compare_size = consumed;
-                });
-            });
+    fn show_compare_buttons(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
+        ui.add_space(10.0);
+        ui.horizontal(|ui| {
+            let spacing_size = ui.available_width() - self.compare_size;
+            if spacing_size > 0.0 {
+                ui.add_space(spacing_size / 2.0);
+            };
+            let max_width = ui.available_width();
+            self.compare_nav.show_ui_compare(ui, event_bus);
+            let consumed = max_width - ui.available_width();
+            self.compare_size = consumed;
+        });
+        ui.add_space(10.0);
     }
 
-    fn handle_message(&mut self, message: MessageWithUser) {
+    fn handle_message(&mut self, message: MessageWithUser, event_bus: &mut EventBus) {
         let username = &message.sender.username;
         let channel_id = message.message.channel_id;
+        let guild_id = message.message.guild_id;
 
         let timestamp = &message.message.message_timestamp;
 
@@ -195,14 +233,19 @@ impl Overview {
 
         let count_entry = target_entry.message_count.entry(channel_id).or_default();
         *count_entry += 1;
+        self.reload_count += 1;
+
+        if self.reload_count == PAGE_VALUE * 5 {
+            event_bus.publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
+        }
     }
 
     fn reload_overview(&mut self) {
         let mut channel_message_count = HashMap::new();
         let mut member_message_count = HashMap::new();
         let mut total_message = 0;
+        self.reload_count = 0;
 
-        // Filter `activity_data` in a single iterator chain.
         self.activity_data
             .iter()
             .filter(|(date, _)| self.date_handler.within_range(**date))
@@ -249,8 +292,62 @@ impl Overview {
         self.data = overview;
     }
 
+    pub fn create_compare_data(&mut self) {
+        self.max_content = usize::default();
+        let mut channel_message_count = HashMap::new();
+        let mut member_message_count = HashMap::new();
+        let mut total_message = 0;
+
+        self.activity_data
+            .iter()
+            .filter(|(date, _)| self.compare_nav.handler().within_range(**date))
+            .for_each(|(_, activities)| {
+                for activity in activities.values() {
+                    for (&channel_id, &count) in &activity.message_count {
+                        *channel_message_count.entry(channel_id).or_insert(0) += count;
+                        *member_message_count
+                            .entry(activity.name.clone())
+                            .or_insert(0) += count;
+                        total_message += count;
+                    }
+                }
+            });
+
+        let unique_user = member_message_count.len() as u32;
+
+        let most_active_channel = channel_message_count
+            .into_iter()
+            .max_by_key(|&(_, count)| count)
+            .unwrap_or((0, 0));
+
+        let most_active_member = member_message_count
+            .into_iter()
+            .max_by_key(|&(_, count)| count)
+            .unwrap_or((String::new(), 0));
+
+        let channel_name = if let Some(name) = self.channel_map.get(&most_active_channel.0) {
+            name.to_string()
+        } else {
+            String::new()
+        };
+
+        let overview = OverviewData {
+            total_message,
+            deleted_message: 0,
+            member_count: 0,
+            unique_user,
+            member_joins: 0,
+            member_left: 0,
+            most_active_member: most_active_member.0,
+            most_active_channel: channel_name,
+        };
+        self.compare_data = Some(overview);
+    }
+
     pub fn set_date_handler(&mut self, handler: DateHandler) {
         self.date_handler = handler;
+        *self.compare_nav.handler().from() = handler.to;
+        *self.compare_nav.handler().to() = handler.to;
     }
 
     fn set_channel_id_map(&mut self, channel_list: Vec<Channel>) {
@@ -265,12 +362,12 @@ impl Overview {
 }
 
 impl TabHandler {
-    pub fn handle_message_overview(&mut self, message: MessageWithUser) {
+    pub fn handle_message_overview(&mut self, message: MessageWithUser, event_bus: &mut EventBus) {
         let guild_id = message.message.guild_id;
         self.overview
             .get_mut(&guild_id)
             .unwrap()
-            .handle_message(message)
+            .handle_message(message, event_bus)
     }
 
     pub fn set_channel_map(&mut self, guild_id: i64, channels: Vec<Channel>) {
@@ -282,5 +379,16 @@ impl TabHandler {
 
     pub fn reload_overview(&mut self, guild_id: i64) {
         self.overview.get_mut(&guild_id).unwrap().reload_overview();
+    }
+
+    pub fn compare_overview(&mut self, guild_id: i64) {
+        self.overview
+            .get_mut(&guild_id)
+            .unwrap()
+            .create_compare_data();
+    }
+
+    pub fn stop_compare_overview(&mut self, guild_id: i64) {
+        self.overview.get_mut(&guild_id).unwrap().compare_data = None;
     }
 }

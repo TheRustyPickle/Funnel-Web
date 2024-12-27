@@ -14,22 +14,19 @@ pub struct DateNavigator {
 }
 
 impl DateNavigator {
-    pub fn show_ui(&mut self, ui: &mut Ui, pass_authenticated: bool, event_bus: &mut EventBus) {
+    pub fn show_ui(&mut self, ui: &mut Ui, connected: bool, event_bus: &mut EventBus) {
         ui.label("From:");
         ui.add_enabled(
-            pass_authenticated,
+            connected,
             DatePickerButton::new(self.handler.from()).id_salt("1"),
         );
         ui.label("To:");
         ui.add_enabled(
-            pass_authenticated,
+            connected,
             DatePickerButton::new(self.handler.to()).id_salt("2"),
         );
 
-        if ui
-            .add_enabled(pass_authenticated, Button::new("Reset"))
-            .clicked()
-        {
+        if ui.add_enabled(connected, Button::new("Reset")).clicked() {
             event_bus.publish(AppEvent::DateChanged);
             self.handler.reset_dates();
         }
@@ -64,7 +61,7 @@ impl DateNavigator {
         let mut h_pressed = false;
         let mut l_pressed = false;
 
-        if pass_authenticated {
+        if connected {
             shift_pressed = ui.ctx().input(|i| i.modifiers.shift);
             h_pressed = ui.ctx().input(|i| i.key_pressed(Key::H));
             l_pressed = ui.ctx().input(|i| i.key_pressed(Key::L));
@@ -81,7 +78,7 @@ impl DateNavigator {
 
         if ui
             .add_enabled(
-                pass_authenticated,
+                connected,
                 Button::new(format!("Previous {}", self.nav_name())),
             )
             .on_hover_text(previous_hover)
@@ -92,10 +89,7 @@ impl DateNavigator {
         };
 
         if ui
-            .add_enabled(
-                pass_authenticated,
-                Button::new(format!("Next {}", self.nav_name())),
-            )
+            .add_enabled(connected, Button::new(format!("Next {}", self.nav_name())))
             .on_hover_text(next_hover)
             .clicked()
             || shift_pressed && l_pressed
@@ -120,6 +114,14 @@ impl DateNavigator {
             .clicked()
         {
             event_bus.publish(AppEvent::CompareDate);
+        }
+
+        if ui
+            .add(Button::new("Reset Compare"))
+            .on_hover_text("Stop comparing the overview data")
+            .clicked()
+        {
+            event_bus.publish(AppEvent::StopCompareOverview);
         }
 
         ui.separator();

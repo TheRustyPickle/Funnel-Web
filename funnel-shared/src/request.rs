@@ -3,14 +3,15 @@ use serde_json::error::Error;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
-    Authenticate(String),
+    StartConnection,
     GetAllGuilds,
     GetMessages { guild_id: i64, page: u64 },
+    GetGuildMemberCount { guild_id: i64, page: u64 },
 }
 
 impl Request {
-    pub fn auth(pass: String) -> Self {
-        Request::Authenticate(pass)
+    pub fn start() -> Self {
+        Request::StartConnection
     }
 
     pub fn guilds() -> Self {
@@ -19,6 +20,10 @@ impl Request {
 
     pub fn get_messages(guild_id: i64, page: u64) -> Self {
         Request::GetMessages { guild_id, page }
+    }
+
+    pub fn get_member_counts(guild_id: i64, page: u64) -> Self {
+        Request::GetGuildMemberCount { guild_id, page }
     }
 
     pub fn to_json(self) -> String {

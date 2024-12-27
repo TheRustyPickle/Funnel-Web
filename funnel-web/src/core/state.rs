@@ -36,26 +36,25 @@ pub enum NavigationType {
     Year,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum AppEvent {
     DateChanged,
     CompareDate,
-    PasswordSubmitted,
-    PasswordFailed(String),
-    StartWebsocket(String),
+    StartWebsocket,
     TableUpdateDate(NaiveDate, i64),
+    TableNeedsReload(i64),
+    OverviewNeedsReload(i64),
     CellsCopied,
     GuildChanged,
-    TableReloaded(i64),
+    StopCompareOverview,
 }
 
 #[derive(Default, Display)]
 pub enum AppStatus {
     #[default]
     Idle,
-    #[strum(to_string = "Starting authentication process")]
-    CheckingAuth,
-    #[strum(to_string = "Failed to authenticate. Reason: {0}")]
-    FailedAuth(String),
+    #[strum(to_string = "Connecting to the server")]
+    ConnectingToWs,
     #[strum(to_string = "Failed to connect to the websocket server. Reason: {0}")]
     FailedWs(String),
     #[strum(to_string = "Fetching data from the server")]
@@ -67,11 +66,8 @@ pub enum AppStatus {
 impl AppStatus {
     pub fn show_spinner(&self) -> bool {
         match self {
-            AppStatus::CheckingAuth | AppStatus::Fetching => true,
-            AppStatus::Idle
-            | AppStatus::FailedAuth(_)
-            | AppStatus::FailedWs(_)
-            | AppStatus::CellsCopied => false,
+            AppStatus::ConnectingToWs | AppStatus::Fetching => true,
+            AppStatus::Idle | AppStatus::FailedWs(_) | AppStatus::CellsCopied => false,
         }
     }
 }

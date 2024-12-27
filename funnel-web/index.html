@@ -42,7 +42,7 @@
             background: #909090;
         }
 
-        @media (prefers-color-scheme: dark) {
+        @media (prefers-color-scheme: light) {
             body {
                 /* Dark mode background color for what is not covered by the egui canvas,
                 or where the egui canvas is translucent. */
@@ -115,6 +115,19 @@
                 transform: rotate(360deg);
             }
         }
+
+        .mobile-warning {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: #f44336;
+            color: white;
+            border-radius: 10px;
+            font-size: 18px;
+            display: block;
+        }
     </style>
 </head>
 
@@ -122,6 +135,9 @@
     <!-- The WASM code will resize the canvas dynamically -->
     <!-- the id is hardcoded in main.rs . so, make sure both match. -->
     <canvas id="the_canvas_id"></canvas>
+    <!-- Placeholder for mobile incompatibility message -->
+    <div id="mobile-warning"></div>
+
 
     <!-- the loading spinner will be removed in main.rs -->
     <div class="centered" id="loading_text">
