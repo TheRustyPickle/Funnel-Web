@@ -73,13 +73,11 @@ impl Connection {
 
                 ui.vertical_centered(|ui| ui.heading("Change Logs"));
                 ui.separator();
-                ScrollArea::vertical()
-                    .drag_to_scroll(false)
-                    .show(ui, |ui| {
-                        for log in change_logs {
-                            log.to_ui(ui);
-                        }
-                    })
+                ScrollArea::vertical().drag_to_scroll(false).show(ui, |ui| {
+                    for log in change_logs {
+                        log.to_ui(ui);
+                    }
+                })
             });
     }
 }

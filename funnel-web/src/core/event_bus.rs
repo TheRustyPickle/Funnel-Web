@@ -1,4 +1,3 @@
-use eframe::egui::Context;
 use ewebsock::Options;
 use log::{error, info};
 use std::collections::VecDeque;
@@ -10,7 +9,7 @@ use crate::{AppEvent, AppStatus};
 const WS_URL: &str = "wss://127.0.0.1:8081/ws";
 
 impl MainWindow {
-    pub fn check_event(&mut self, ctx: &Context) {
+    pub fn check_event(&mut self) {
         loop {
             let Some(event) = self.event_bus.get() else {
                 break;
@@ -69,7 +68,6 @@ impl MainWindow {
                 }
             }
         }
-        ctx.request_repaint();
     }
 }
 
