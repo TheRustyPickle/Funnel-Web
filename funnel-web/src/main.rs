@@ -26,7 +26,7 @@ fn main() {
         if is_mobile {
             document.get_element_by_id("loading_text").unwrap().remove();
             let mobile_warning = document.get_element_by_id("mobile-warning").unwrap();
-            mobile_warning.set_inner_html("<p>This app is not compatible with mobile devices.</p>");
+            mobile_warning.set_inner_html("<p>This app is not compatible with small screens.</p>");
             mobile_warning.set_class_name("mobile-warning");
             return;
         }
