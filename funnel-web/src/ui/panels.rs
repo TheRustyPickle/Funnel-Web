@@ -220,6 +220,7 @@ impl PanelStatus {
 
     fn show_right_bar(&mut self, ctx: &Context) {
         SidePanel::right("right_panel")
+            .default_width(100.0)
             .max_width(200.0)
             .show_animated(ctx, self.show_channel, |ui| {
                 ScrollArea::vertical().drag_to_scroll(false).show(ui, |ui| {

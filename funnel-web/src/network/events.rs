@@ -4,6 +4,7 @@ use log::{error, info};
 
 use crate::core::MainWindow;
 use crate::network::handle_ws_message;
+use crate::AppStatus;
 
 impl MainWindow {
     pub fn check_ws_receiver(&mut self) {
@@ -14,9 +15,11 @@ impl MainWindow {
                         info!("Connection to WS has been closed");
                         self.remove_channels();
                         self.connection.failed_connection();
+                        self.panels.set_app_status(AppStatus::FailedWs("The websocket connection was closed".to_string()));
                     }
                     WsEvent::Error(e) => {
                         error!("Error in ws. Reason: {e}");
+                        self.panels.set_app_status(AppStatus::FailedWs(e));
                     }
                     WsEvent::Opened => {
                         info!("Connection to WS has been opened");
