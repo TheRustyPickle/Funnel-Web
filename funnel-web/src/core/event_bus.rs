@@ -6,7 +6,8 @@ use crate::core::MainWindow;
 use crate::ui::ReloadTab;
 use crate::{AppEvent, AppStatus};
 
-const WS_URL: &str = "wss://127.0.0.1:8081/ws";
+const WS_URL: &str = "wss://funnel-jyz9.shuttle.app/ws";
+// const WS_URL: &str = "ws://localhost:8000/ws";
 
 impl MainWindow {
     pub fn check_event(&mut self) {
