@@ -1,4 +1,4 @@
-use eframe::egui::{Context, FontData, FontDefinitions, FontFamily, RichText, Ui};
+use eframe::egui::{Context, FontData, FontDefinitions, FontFamily, Id, RichText, Ui};
 use std::fmt::Display;
 use std::sync::Arc;
 
@@ -47,15 +47,20 @@ pub fn add_font(ctx: &Context) {
     ctx.set_fonts(font_definitions);
 }
 
-pub fn compare_number(old_num: u32, new_num: u32) -> String {
+pub fn compare_number(ui: &mut Ui, old_num: u32, new_num: u32, id: Id) -> String {
     let old_num = old_num as f32;
     let new_num = new_num as f32;
     let difference = ((new_num - old_num) / old_num) * 100.0;
+
     if difference > 0.0 {
+        let difference = ui.ctx().animate_value_with_time(id, difference, 1.0);
         format!("{:.2}% ↑", difference)
-    } else {
+    } else if difference < 0.0 {
+        let difference = ui.ctx().animate_value_with_time(id, difference.abs(), 1.0);
         let difference = difference.abs();
         format!("{:.2}% ↓", difference)
+    } else {
+        format!("{:.2}%", difference)
     }
 }
 

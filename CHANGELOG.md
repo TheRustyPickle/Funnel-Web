@@ -2,8 +2,11 @@
 
 ## 12.2024
 
+* Deploy the server to Shuttle, connect it with the UI with initial data to the database
+* Update server side to handle more concurrent connections with higher efficiency by thread pooling
+* Add animation to number changes in the Overview tab
 * Add the UI on the Start page to show the change log
-* Remove the password system on the initial UI and directly connect to the server using websocket
+* Remove the password system on the initial UI and directly connect to the server using WebSocket
 * Fix Vertical line vanishing from top tab UI when changing tabs
 * Prevent reloading UI elements that are not selected currently and keep tab of pending reloads
 * Added relevant method to send/receive member count data from server

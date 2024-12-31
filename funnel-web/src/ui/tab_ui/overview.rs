@@ -9,7 +9,7 @@ use crate::{AppEvent, EventBus};
 
 #[derive(Default, Debug)]
 pub struct ActivityData {
-    // Channel ID + Messagse Count
+    // Channel ID + Message Count
     message_count: HashMap<i64, u32>,
     deleted_message: u32,
     name: String,
@@ -55,10 +55,22 @@ impl ShowUI for Overview {
     fn show_ui(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
         self.show_compare_buttons(ui, event_bus);
 
+        let total_message_id = ui.make_persistent_id("overview_total_message");
+        let unique_user_id = ui.make_persistent_id("overview_unique_user");
+        let compare_total_message = ui.make_persistent_id("overview_compare_message");
+        let compare_unique_user = ui.make_persistent_id("overview_compare_user");
+
         let space_3_item = ui.make_persistent_id("card_space_3");
         let space_2_item = ui.make_persistent_id("card_space_2");
+
         ui.vertical(|ui| {
             let has_compare = self.compare_data.is_some();
+
+            if !has_compare {
+                ui.ctx().animate_value_with_time(compare_total_message, 0.0, 0.0);
+                ui.ctx().animate_value_with_time(compare_unique_user, 0.0, 0.0);
+            }
+
             let x_size = if self.max_content != usize::default() && has_compare {
                 self.max_content as f32 * 12.0
             } else {
@@ -89,17 +101,22 @@ impl ShowUI for Overview {
             } else {
                 ui.ctx().animate_value_with_time(space_3_item, 0.0, 0.0);
                 ui.ctx().animate_value_with_time(space_2_item, 0.0, 0.0);
+                ui.ctx().animate_value_with_time(total_message_id, 0.0, 0.0);
+                ui.ctx().animate_value_with_time(unique_user_id, 0.0, 0.0);
             }
 
             ui.horizontal(|ui| {
                 ui.add_space(space_3);
                 let remaining_width = ui.available_width();
                 let mut header_text = "Total Message".to_string();
-                let content_text = self.data.total_message;
-                let mut hover_text = "Total message gotten within this time period".to_string();
+                let content_text = ui.ctx().animate_value_with_time(total_message_id, self.data.total_message as f32, 1.0) as u32;
+                let mut hover_text = "Total message gotten within selected time period".to_string();
                 if has_compare {
                     let comparing_with = self.compare_data.as_ref().unwrap().total_message;
-                    let difference = compare_number(comparing_with, content_text);
+                    let difference = compare_number(ui,
+                        comparing_with,
+                        content_text,
+                        compare_total_message);
                     header_text += &format!(" {difference}");
                     let header_text_len = header_text.chars().count();
                     if header_text_len > self.max_content {
@@ -126,13 +143,13 @@ impl ShowUI for Overview {
                 ));
 
                 let mut header_text = "Unique User".to_string();
-                let content_text = self.data.unique_user;
+                let content_text = ui.ctx().animate_value_with_time(unique_user_id, self.data.unique_user as f32, 0.5) as u32;
                 let mut hover_text =
-                    "Total unique users gotten within this time period".to_string();
+                    "Total unique users gotten within selected time period".to_string();
 
                 if has_compare {
                     let comparing_with = self.compare_data.as_ref().unwrap().unique_user;
-                    let difference = compare_number(comparing_with, content_text);
+                    let difference = compare_number(ui, comparing_with, content_text, compare_unique_user);
                     header_text += &format!(" {difference}");
                     hover_text += &format!(
                         "\nTotal unique users gotten in the compare time: {comparing_with}"
@@ -179,33 +196,53 @@ impl ShowUI for Overview {
             ui.add_space(5.0);
 
             ui.horizontal(|ui| {
+                let mut hover_text = "The user with the most messages sent within selected time period".to_string();
+                if has_compare {
+                    let comparing_with = self.compare_data.as_ref().unwrap().most_active_member.to_string();
+                    hover_text += &format!(
+                        "\nThe user with the most messages sent in the compare time: {comparing_with}"
+                    );
+                }
                 ui.add_space(space_2);
                 ui.add(Card::new(
                     to_header("Most Active Member"),
                     to_header(&self.data.most_active_member),
                     x_size,
                     y_size,
-                ));
+                )).on_hover_text(hover_text);
+
+
+                let mut hover_text = "The channel with the most messages sent within selected time period".to_string();
+                if has_compare {
+                    let comparing_with = self.compare_data.as_ref().unwrap().most_active_channel.to_string();
+                    hover_text += &format!(
+                        "\nThe channel with the most messages sent in the compare time: {comparing_with}"
+                    );
+                }
 
                 ui.add(Card::new(
                     to_header("Most Active Channel"),
                     to_header(&self.data.most_active_channel),
                     x_size,
                     y_size,
-                ));
+                )).on_hover_text(hover_text);
             })
         });
         ui.add_space(50.0);
+        ui.vertical_centered(|ui| {
+            ui.heading("Member Movement Chart Under Construction");
+        });
     }
 }
-// TODO: Allow comparing these numbers with a different date, show up or down %
+
 impl Overview {
     fn show_compare_buttons(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
         ui.add_space(10.0);
         ui.horizontal(|ui| {
             let spacing_size = ui.available_width() - self.compare_size;
+            let spacing_size = ui.painter().round_to_pixel_center(spacing_size / 2.0);
             if spacing_size > 0.0 {
-                ui.add_space(spacing_size / 2.0);
+                ui.add_space(spacing_size);
             };
             let max_width = ui.available_width();
             self.compare_nav.show_ui_compare(ui, event_bus);

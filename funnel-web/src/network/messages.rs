@@ -34,6 +34,7 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
         }
         Response::Messages { guild_id, messages } => {
             if messages.is_empty() {
+                window.panels.set_app_status(AppStatus::Idle);
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::TableNeedsReload(guild_id));
@@ -59,6 +60,7 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             }
 
             if !do_new_page {
+                window.panels.set_app_status(AppStatus::Idle);
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::TableNeedsReload(guild_id));
