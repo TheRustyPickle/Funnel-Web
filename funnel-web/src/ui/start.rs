@@ -6,7 +6,6 @@ use crate::{get_change_log, AppEvent, EventBus};
 pub struct Connection {
     connected: bool,
     connecting: bool,
-    text_size: f32,
 }
 
 impl Connection {
@@ -30,7 +29,7 @@ impl Connection {
     fn add_start_button(&self, ui: &mut Ui) -> bool {
         let mut clicked = false;
         ui.vertical_centered(|ui| {
-            let submit_button = Button::new("Start Connection").min_size(Vec2::new(100.0, 40.0));
+            let submit_button = Button::new("Start Connection").min_size(Vec2::new(150.0, 40.0));
             if ui.add_enabled(!self.connecting, submit_button).clicked() {
                 clicked = true;
             }
@@ -40,18 +39,8 @@ impl Connection {
 
     fn add_info_text(&mut self, ui: &mut Ui) {
         ui.add_space(20.0);
-        ui.horizontal(|ui| {
-            if self.text_size != 0.0 {
-                let max_size = ui.available_width();
-                let space_taken = self.text_size;
-                let remaining = max_size - space_taken;
-                let remaining = ui.painter().round_to_pixel_center(remaining);
-                ui.add_space(remaining / 2.0);
-            }
-            let available_width = ui.available_width();
+        ui.vertical_centered(|ui| {
             ui.label("📝 Note: The server side of this project is not live anywhere so it is not possible to pass this step right now");
-            let space_consumed = available_width - ui.available_width();
-            self.text_size = space_consumed;
         });
     }
 
