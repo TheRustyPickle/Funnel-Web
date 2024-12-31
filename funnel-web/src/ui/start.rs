@@ -40,7 +40,7 @@ impl Connection {
     fn add_info_text(&mut self, ui: &mut Ui) {
         ui.add_space(20.0);
         ui.vertical_centered(|ui| {
-            ui.label("📝 Note: The server side of this project is not live anywhere so it is not possible to pass this step right now");
+            // ui.label("📝 Note: The server side of this project is not live anywhere so it is not possible to pass this step right now");
         });
     }
 
