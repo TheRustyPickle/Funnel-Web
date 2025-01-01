@@ -1,10 +1,10 @@
-use eframe::wasm_bindgen::JsCast as _;
-use eframe::{WebLogger, WebOptions, WebRunner};
 use funnel_web::core::MainWindow;
 use log::LevelFilter;
 
 #[cfg(target_arch = "wasm32")]
 fn main() {
+    use eframe::wasm_bindgen::JsCast as _;
+    use eframe::{WebLogger, WebOptions, WebRunner};
     WebLogger::init(LevelFilter::Debug).ok();
 
     let web_options = WebOptions::default();
@@ -59,4 +59,29 @@ fn main() {
             }
         }
     });
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn main() -> eframe::Result {
+    use eframe::egui::ViewportBuilder;
+    let mut builder = pretty_env_logger::formatted_timed_builder();
+
+    builder
+        .filter_module("funnel_web", LevelFilter::Info)
+        .init();
+
+    let options = eframe::NativeOptions {
+        centered: true,
+        persist_window: false,
+        viewport: ViewportBuilder {
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+
+    eframe::run_native(
+        "Funnel",
+        options,
+        Box::new(|cc| Ok(Box::new(MainWindow::new(cc)))),
+    )
 }
