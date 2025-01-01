@@ -4,12 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "funnel-web"
+name = "funnel"
 path = "src/main.rs"
 
 [dependencies]
 chrono = "0.4.39"
 eframe = { version = "0.30.0", default-features = false, features = [
+    "x11",
+    "wayland",
     "default_fonts",
     "glow",
 ] }
@@ -32,3 +34,4 @@ strum = "0.26.3"
 strum_macros = "0.26.4"
 wasm-bindgen-futures = "0.4.49"
 web-sys = "0.3.76"
+pretty_env_logger = "0.5.0"
