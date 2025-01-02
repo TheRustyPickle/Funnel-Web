@@ -22,6 +22,8 @@ impl MainWindow {
                     WsEvent::Error(e) => {
                         error!("Error in ws. Reason: {e}");
                         self.panels.set_app_status(AppStatus::FailedWs(e));
+                        self.remove_channels();
+                        self.connection.failed_connection();
                     }
                     WsEvent::Opened => {
                         info!("Connection to WS has been opened");
@@ -42,7 +44,10 @@ impl MainWindow {
                                 self.send_ws(reply);
                             };
                         } else {
-                            error!("Unknown response gotten from server");
+                            let message_text = format!("{:?}", message);
+                            if !message_text.starts_with("Ping") {
+                                error!("Unknown response gotten from server: {message:#?}");
+                            }
                         }
                     }
                 }

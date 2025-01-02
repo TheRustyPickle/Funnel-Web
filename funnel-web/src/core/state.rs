@@ -104,11 +104,11 @@ pub enum ColumnName {
     LastMessageSeen,
 }
 
-#[derive(Default)]
-pub enum RequestStatus {
+#[derive(Default, Eq, PartialEq, Display, EnumIter)]
+pub enum ChartType {
+    Hourly,
     #[default]
-    None,
-    Pending,
-    Gotten(String),
-    Failed(String),
+    Daily,
+    Weekly,
+    Monthly,
 }
