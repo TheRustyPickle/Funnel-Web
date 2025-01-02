@@ -1,8 +1,9 @@
 use chrono::{
-    DateTime, Datelike, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday,
+    DateTime, Datelike, Duration, Local, Months, NaiveDate, NaiveDateTime, Timelike, Weekday,
 };
+use core::ops::RangeInclusive;
 use eframe::egui::Ui;
-use egui_plot::{Legend, Line, Plot, PlotPoints};
+use egui_plot::{AxisHints, GridMark, Legend, Line, Plot, PlotPoint, PlotPoints};
 use funnel_shared::{Channel, MemberCount, MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
 use log::info;
@@ -59,6 +60,7 @@ pub struct OverviewData {
 
 #[derive(Default)]
 pub struct Overview {
+    chart_labels: Vec<(NaiveDateTime, i64)>,
     member_joins: MemberJoins,
     activity_data: HashMap<NaiveDate, HashMap<String, ActivityData>>,
     channel_map: HashMap<i64, String>,
@@ -104,13 +106,6 @@ impl Overview {
         let hover_position = ui.make_persistent_id("overivew_chart_hover");
         let selected_position = ui.make_persistent_id("overview_chart_selected");
 
-        let target_data = match self.member_joins.chart_type {
-            ChartType::Hourly => &self.member_joins.hourly,
-            ChartType::Daily => &self.member_joins.daily,
-            ChartType::Weekly => &self.member_joins.weekly,
-            ChartType::Monthly => &self.member_joins.monthly,
-        };
-
         ui.horizontal(|ui| {
             for val in ChartType::iter() {
                 let val_string = val.to_string();
@@ -129,6 +124,7 @@ impl Overview {
 
                 if resp.clicked() {
                     self.member_joins.chart_type = val;
+                    self.chart_labels.clear();
                 }
             }
             ui.separator();
@@ -142,24 +138,91 @@ impl Overview {
         });
         ui.add_space(5.0);
 
+        let target_data = match self.member_joins.chart_type {
+            ChartType::Hourly => &self.member_joins.hourly,
+            ChartType::Daily => &self.member_joins.daily,
+            ChartType::Weekly => &self.member_joins.weekly,
+            ChartType::Monthly => &self.member_joins.monthly,
+        };
+
         let mut ongoing_x = 0.0;
 
-        let plot_points: PlotPoints = target_data
-            .values()
-            .map(|count| {
-                let x = ongoing_x;
-                let y = *count as f64;
-                ongoing_x += 1.0;
-                [x, y]
-            })
-            .collect();
+        let plot_points: PlotPoints = if !self.chart_labels.is_empty() {
+            target_data
+                .values()
+                .map(|count| {
+                    let x = ongoing_x;
+                    let y = *count as f64;
+                    ongoing_x += 1.0;
+                    [x, y]
+                })
+                .collect()
+        } else {
+            target_data
+                .iter()
+                .map(|(date, count)| {
+                    let x = ongoing_x;
+                    let y = *count as f64;
+                    self.chart_labels.push((*date, *count));
+                    ongoing_x += 1.0;
+                    [x, y]
+                })
+                .collect()
+        };
+
+        let labels = self.chart_labels.clone();
+        let date_axis = move |mark: GridMark, _range: &RangeInclusive<f64>| {
+            let index = mark.value.round() as usize;
+            if let Some((date, _)) = labels.get(index) {
+                date.format("%y-%m-%d").to_string()
+            } else {
+                String::new()
+            }
+        };
+
+        let x_axis = AxisHints::new_x().formatter(date_axis);
 
         let line = Line::new(plot_points).name("Total Members");
+
+        let hover_label = move |_s: &str, val: &PlotPoint| {
+            let x_val = val.x.round() as i64;
+
+            if let Some((date, count)) = self.chart_labels.get(x_val as usize) {
+                let date_label = match self.member_joins.chart_type {
+                    ChartType::Hourly => date.to_string(),
+                    ChartType::Daily => date.format("%y-%m-%d").to_string(),
+                    ChartType::Weekly => {
+                        let other_date = date.checked_add_signed(Duration::weeks(1)).unwrap();
+                        format!(
+                            "{} - {}",
+                            date.format("%y-%m-%d"),
+                            other_date.format("%y-%m-%d")
+                        )
+                    }
+                    ChartType::Monthly => {
+                        let other_date = date.checked_add_months(Months::new(1)).unwrap();
+                        format!(
+                            "{} - {}",
+                            date.format("%y-%m-%d"),
+                            other_date.format("%y-%m-%d")
+                        )
+                    }
+                };
+                format!(
+                    "{}\nY = {:.0}\nTotal Members = {}",
+                    date_label, val.y, count
+                )
+            } else {
+                format!("X = {:.0}\nY = {:.0}", val.x, val.y)
+            }
+        };
 
         Plot::new("member_join")
             .legend(Legend::default().background_alpha(0.0))
             .auto_bounds([true; 2].into())
+            .custom_x_axes(vec![x_axis])
             .clamp_grid(true)
+            .label_formatter(hover_label)
             .show(ui, |plot_ui| {
                 plot_ui.line(line);
             });
@@ -392,6 +455,8 @@ impl Overview {
     }
 
     fn reload_overview(&mut self) {
+        self.chart_labels.clear();
+
         let mut channel_message_count = HashMap::new();
         let mut member_message_count = HashMap::new();
         let mut total_message = 0;
