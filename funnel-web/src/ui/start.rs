@@ -1,4 +1,4 @@
-use eframe::egui::{Button, ScrollArea, TopBottomPanel, Ui, Vec2};
+use eframe::egui::{Button, ScrollArea, TextEdit, TopBottomPanel, Ui, Vec2};
 
 use crate::{get_change_log, AppEvent, EventBus};
 
@@ -30,7 +30,11 @@ impl Connection {
         let mut clicked = false;
         ui.vertical_centered(|ui| {
             let submit_button = Button::new("Start Connection").min_size(Vec2::new(150.0, 40.0));
-            if ui.add_enabled(!self.connecting, submit_button).clicked() {
+            if ui
+                .add_enabled(!self.connecting, submit_button)
+                .on_hover_text("Start the connection to the server")
+                .clicked()
+            {
                 clicked = true;
             }
         });
@@ -39,8 +43,31 @@ impl Connection {
 
     fn add_info_text(&mut self, ui: &mut Ui) {
         ui.add_space(20.0);
+
+        let mut text_edit_text = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&permissions=66560&integration_type=0&scope=bot".to_string();
+        let text_edit = TextEdit::singleline(&mut text_edit_text);
+
         ui.vertical_centered(|ui| {
-            // ui.label("📝 Note: The server side of this project is not live anywhere so it is not possible to pass this step right now");
+            ui.label("Add this bot to your Discord server and run `/sync_all` to view analytics");
+        });
+
+        ui.add_space(5.0);
+
+        ui.vertical_centered(|ui| {
+            ui.add_sized([400.0, 20.0], text_edit);
+        });
+
+        ui.add_space(5.0);
+
+        ui.vertical_centered(|ui| {
+            let button = Button::new("Copy to clipboard").min_size(Vec2::new(150.0, 30.0));
+            if ui
+                .add(button)
+                .on_hover_text("Copy the bot invite link to clipboard")
+                .clicked()
+            {
+                ui.output_mut(|o| o.copied_text = text_edit_text);
+            }
         });
     }
 
