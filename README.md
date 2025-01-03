@@ -21,7 +21,6 @@ A work-in-progress platform for visualizing Discord analytics, built with Rust a
 2. To run the project as a WebAssembly app:
 
     ```sh
-    cd funnel-web
     trunk serve --release
     ```
 

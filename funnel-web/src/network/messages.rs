@@ -70,10 +70,20 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             }
         }
         Response::MemberCounts { guild_id, counts } => {
-            info!(
-                "Got member count data for {guild_id} with data count {}",
-                counts.len()
-            );
+            if counts.is_empty() {
+                return None;
+            }
+
+            let do_new_page = counts.len() as u64 == PAGE_VALUE;
+
+            if do_new_page {
+                let current_page = response.status.page();
+                window.send_ws(Request::get_member_counts(guild_id, current_page + 1));
+            }
+
+            for count in counts {
+                window.tabs.handle_member_count(guild_id, count);
+            }
         }
         Response::Error(_) => unreachable!(),
     }
