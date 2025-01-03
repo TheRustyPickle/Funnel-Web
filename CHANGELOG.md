@@ -1,5 +1,11 @@
 # Pre-Release
 
+## 01.2025
+
+* Add custom hover labels and x axis labels on Overview chart
+* Add a chart on the Overview tab to visualize member count movement
+* Add total member count handling on the Overview tab
+
 ## 12.2024
 
 * Deploy the server to Shuttle, connect it with the UI with initial data to the database
