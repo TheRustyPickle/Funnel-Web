@@ -84,6 +84,19 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             for count in counts {
                 window.tabs.handle_member_count(guild_id, count);
             }
+
+            if !do_new_page {
+                window.send_ws(Request::get_member_activity(guild_id, 1));
+                window
+                    .event_bus
+                    .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
+            }
+        }
+        Response::MemberActivities {
+            guild_id,
+            activities,
+        } => {
+            info!("{activities:#?} {guild_id}")
         }
         Response::Error(_) => unreachable!(),
     }
