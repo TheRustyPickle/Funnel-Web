@@ -9,6 +9,7 @@ pub struct Message {
     pub sender_id: i64,
     pub message_content: Option<String>,
     pub stripped_content: Option<String>,
+    pub delete_timestamp: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
