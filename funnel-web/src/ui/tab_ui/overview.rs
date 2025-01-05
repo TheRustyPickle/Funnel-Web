@@ -434,9 +434,16 @@ impl Overview {
         let channel_id = message.message.channel_id;
         let guild_id = message.message.guild_id;
 
-        let timestamp = &message.message.message_timestamp;
+        let mut deleted_message = false;
 
-        let datetime = DateTime::from_timestamp(*timestamp, 0).unwrap();
+        let timestamp = if let Some(delete_timestamp) = message.message.delete_timestamp {
+            deleted_message = true;
+            delete_timestamp
+        } else {
+            message.message.message_timestamp
+        };
+
+        let datetime = DateTime::from_timestamp(timestamp, 0).unwrap();
         let local_time = datetime.with_timezone(&Local).naive_local();
         let local_date = local_time.date();
         let activity = ActivityData::new(username.to_string());
@@ -445,8 +452,13 @@ impl Overview {
 
         let target_entry = entry.entry(username.to_string()).or_insert(activity);
 
-        let count_entry = target_entry.message_count.entry(channel_id).or_default();
-        *count_entry += 1;
+        if deleted_message {
+            target_entry.deleted_message += 1;
+        } else {
+            let count_entry = target_entry.message_count.entry(channel_id).or_default();
+            *count_entry += 1;
+        }
+
         self.reload_count += 1;
 
         if self.reload_count == PAGE_VALUE * 5 {
@@ -460,6 +472,7 @@ impl Overview {
         let mut channel_message_count = HashMap::new();
         let mut member_message_count = HashMap::new();
         let mut total_message = 0;
+        let mut deleted_message = 0;
         self.reload_count = 0;
 
         self.activity_data
@@ -474,6 +487,7 @@ impl Overview {
                             .or_insert(0) += count;
                         total_message += count;
                     }
+                    deleted_message += activity.deleted_message;
                 }
             });
 
@@ -499,7 +513,7 @@ impl Overview {
 
         let overview = OverviewData {
             total_message,
-            deleted_message: 0,
+            deleted_message,
             member_count: self.find_member_count(to_date),
             unique_user,
             member_joins: 0,
