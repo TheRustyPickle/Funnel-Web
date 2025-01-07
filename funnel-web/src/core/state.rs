@@ -104,7 +104,7 @@ pub enum ColumnName {
     LastMessageSeen,
 }
 
-#[derive(Default, Debug, Copy, Clone, Eq, PartialEq, Display, EnumIter)]
+#[derive(Default, Copy, Clone, Eq, PartialEq, Display, EnumIter)]
 pub enum ChartType {
     Hourly,
     #[default]
