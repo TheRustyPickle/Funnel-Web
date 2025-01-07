@@ -6,6 +6,7 @@ use crate::{get_change_log, AppEvent, EventBus};
 pub struct Connection {
     connected: bool,
     connecting: bool,
+    space_taken: f32,
 }
 
 impl Connection {
@@ -45,7 +46,6 @@ impl Connection {
         ui.add_space(20.0);
 
         let mut text_edit_text = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&permissions=66560&integration_type=0&scope=bot".to_string();
-        let text_edit = TextEdit::singleline(&mut text_edit_text);
 
         ui.vertical_centered(|ui| {
             ui.label("Add this bot to your Discord server and run `/sync_all` to view analytics");
@@ -53,14 +53,25 @@ impl Connection {
 
         ui.add_space(5.0);
 
-        ui.vertical_centered(|ui| {
-            ui.add_sized([400.0, 20.0], text_edit);
-        });
+        ui.horizontal(|ui| {
+            let spacing_size = ui.available_width() - self.space_taken;
+            let spacing_size = ui.painter().round_to_pixel_center(spacing_size / 2.0);
+            if spacing_size > 0.0 {
+                ui.add_space(spacing_size);
+            };
 
-        ui.add_space(5.0);
+            let max_width = ui.available_width();
 
-        ui.vertical_centered(|ui| {
-            let button = Button::new("Copy to clipboard").min_size(Vec2::new(150.0, 30.0));
+            // FIX: single line text edit text clipping not working. Wait for the next egui release
+            // and see if it gets fixed
+            let text_edit = TextEdit::multiline(&mut text_edit_text)
+                .min_size(Vec2::new(300.0, 20.0))
+                .clip_text(true)
+                .desired_rows(1);
+
+            ui.add(text_edit);
+
+            let button = Button::new("Copy to clipboard").min_size(Vec2::new(30.0, 20.0));
             if ui
                 .add(button)
                 .on_hover_text("Copy the bot invite link to clipboard")
@@ -68,6 +79,8 @@ impl Connection {
             {
                 ui.output_mut(|o| o.copied_text = text_edit_text);
             }
+            let consumed = max_width - ui.available_width();
+            self.space_taken = consumed;
         });
     }
 
