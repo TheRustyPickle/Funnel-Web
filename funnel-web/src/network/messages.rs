@@ -34,7 +34,6 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
         }
         Response::Messages { guild_id, messages } => {
             if messages.is_empty() {
-                window.panels.set_app_status(AppStatus::Idle);
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::TableNeedsReload(guild_id));
@@ -60,7 +59,6 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             }
 
             if !do_new_page {
-                window.panels.set_app_status(AppStatus::Idle);
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::TableNeedsReload(guild_id));
@@ -85,18 +83,38 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 window.tabs.handle_member_count(guild_id, count);
             }
 
+            window.tabs.clear_chart_labels(guild_id);
+
             if !do_new_page {
+                window.tabs.fill_member_activity(guild_id);
                 window.send_ws(Request::get_member_activity(guild_id, 1));
-                window
-                    .event_bus
-                    .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
             }
         }
         Response::MemberActivities {
             guild_id,
             activities,
         } => {
-            info!("{activities:#?} {guild_id}")
+            if activities.is_empty() {
+                window.panels.set_app_status(AppStatus::Idle);
+                return None;
+            }
+
+            let do_new_page = activities.len() as u64 == PAGE_VALUE;
+
+            if do_new_page {
+                let current_page = response.status.page();
+                window.send_ws(Request::get_member_counts(guild_id, current_page + 1));
+            }
+
+            for activity in activities {
+                window.tabs.handle_member_activity(guild_id, activity);
+            }
+
+            window.tabs.clear_chart_labels(guild_id);
+
+            if !do_new_page {
+                window.panels.set_app_status(AppStatus::Idle);
+            }
         }
         Response::Error(_) => unreachable!(),
     }
