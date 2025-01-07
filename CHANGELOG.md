@@ -2,6 +2,8 @@
 
 ## 01.2025
 
+* Add handling for member joins and leave data
+* Fix Start page uneven centering of buttons
 * Add custom hover labels and x axis labels on Overview chart
 * Add a chart on the Overview tab to visualize member count movement
 * Add total member count handling on the Overview tab
