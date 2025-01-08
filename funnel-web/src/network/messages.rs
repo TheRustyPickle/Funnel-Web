@@ -16,7 +16,7 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             window.send_ws(Request::guilds());
         }
         Response::Guilds(guilds) => {
-            // TODO: Do not request stuff for all guilds. Mark 1 guild as selected => Get data for
+            // TODO: Do not request stuff for all guilds. Mark one guild as selected => Get data for
             // that only. Once a new guild is selected, fetch data for it as required
             for guild in &guilds {
                 let guild_id = guild.guild.guild_id;

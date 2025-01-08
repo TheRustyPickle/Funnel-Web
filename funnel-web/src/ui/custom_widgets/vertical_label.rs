@@ -77,7 +77,7 @@ impl Widget for AnimatedLabel {
 
             let text_x = ui.make_persistent_id("text_pos");
 
-            // y value will remain as it is but if the right bar is resized, make the animation
+            // The y value will remain as it is but if the right bar is resized, make the animation
             // smoother by modifying x value
             let val = ui.ctx().animate_value_with_time(text_x, text_pos.x, 0.5);
             text_pos.y = text_position;

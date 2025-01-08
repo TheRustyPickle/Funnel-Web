@@ -227,7 +227,7 @@ impl UserRowData {
 
 pub struct UserTable {
     /// Key: The Date where at least one message/User was found
-    /// Value: A hashmap of the founded User with their user id as the key
+    /// Value: A HashMap of the founded User with their user id as the key
     /// Contains all data points and UI points are recreated from here
     user_data: HashMap<NaiveDate, HashMap<i64, UserRowData>>,
     table: SelectableTable<UserRowData, ColumnName, Config>,

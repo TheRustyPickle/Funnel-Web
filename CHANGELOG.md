@@ -2,7 +2,7 @@
 
 ## 01.2025
 
-* Add handling for member joins and leave data
+* Add handling for member joins and leave data on Overview tab
 * Fix Start page uneven centering of buttons
 * Add custom hover labels and x axis labels on Overview chart
 * Add a chart on the Overview tab to visualize member count movement
@@ -27,4 +27,4 @@
 
 ## 10.2024
 
-* Removed JS codes for webworker and use wasm native ehttp library
+* Removed JS codes for webworker and use Wasm native ehttp library
