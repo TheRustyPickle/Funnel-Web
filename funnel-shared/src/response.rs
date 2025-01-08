@@ -116,7 +116,10 @@ impl WsResponse {
         let status = Status::success(page);
         Self {
             status,
-            response: Response::MemberActivities { guild_id, activities },
+            response: Response::MemberActivities {
+                guild_id,
+                activities,
+            },
         }
     }
 

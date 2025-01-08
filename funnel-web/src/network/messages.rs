@@ -16,7 +16,7 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             window.send_ws(Request::guilds());
         }
         Response::Guilds(guilds) => {
-            // TODO: Do not request stuff for all guilds. Mark 1 guild as selected => Get data for
+            // TODO: Do not request stuff for all guilds. Mark one guild as selected => Get data for
             // that only. Once a new guild is selected, fetch data for it as required
             for guild in &guilds {
                 let guild_id = guild.guild.guild_id;
@@ -34,7 +34,6 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
         }
         Response::Messages { guild_id, messages } => {
             if messages.is_empty() {
-                window.panels.set_app_status(AppStatus::Idle);
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::TableNeedsReload(guild_id));
@@ -60,7 +59,6 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             }
 
             if !do_new_page {
-                window.panels.set_app_status(AppStatus::Idle);
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::TableNeedsReload(guild_id));
@@ -82,7 +80,44 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             }
 
             for count in counts {
-                window.tabs.handle_member_count(guild_id, count);
+                window
+                    .tabs
+                    .handle_member_count(guild_id, count, &mut window.event_bus);
+            }
+
+            window.tabs.clear_chart_labels(guild_id);
+
+            if !do_new_page {
+                window.tabs.fill_member_activity(guild_id);
+                window.send_ws(Request::get_member_activity(guild_id, 1));
+            }
+        }
+        Response::MemberActivities {
+            guild_id,
+            activities,
+        } => {
+            if activities.is_empty() {
+                window.panels.set_app_status(AppStatus::Idle);
+                return None;
+            }
+
+            let do_new_page = activities.len() as u64 == PAGE_VALUE;
+
+            if do_new_page {
+                let current_page = response.status.page();
+                window.send_ws(Request::get_member_counts(guild_id, current_page + 1));
+            }
+
+            for activity in activities {
+                window
+                    .tabs
+                    .handle_member_activity(guild_id, activity, &mut window.event_bus);
+            }
+
+            window.tabs.clear_chart_labels(guild_id);
+
+            if !do_new_page {
+                window.panels.set_app_status(AppStatus::Idle);
             }
         }
         Response::Error(_) => unreachable!(),

@@ -3,10 +3,117 @@ use std::fmt::Display;
 use std::sync::Arc;
 
 use crate::core::{CHANGE, JET};
+use crate::ui::Card;
 
 pub struct ChangeLog {
     pub header: RichText,
     pub normal_text: String,
+}
+
+pub struct CardData {
+    pub x_size: f32,
+    pub y_size: f32,
+    pub card_type: CardType,
+    pub number: u32,
+    pub compare_num: Option<u32>,
+    pub id: Id,
+    pub compare_id: Option<Id>,
+}
+
+impl CardData {
+    pub fn add_to_ui(self, ui: &mut Ui, max_content: &mut usize) {
+        let Self {
+            x_size,
+            y_size,
+            card_type,
+            number,
+            compare_num,
+            id,
+            compare_id,
+        } = self;
+
+        let mut header_text = match card_type {
+            CardType::TotalMessage => String::from("Total Messages"),
+            CardType::UniqueUser => String::from("Unique Users"),
+            CardType::DeletedMessage => String::from("Deleted Messages"),
+            CardType::MemberCount => String::from("Member Count"),
+            CardType::MemberJoin => String::from("Member Joins"),
+            CardType::MemberLeave => String::from("Member Leaves"),
+        };
+        let mut hover_text = match card_type {
+            CardType::TotalMessage => {
+                format!("Total message gotten within the selected date: {number}")
+            }
+            CardType::UniqueUser => {
+                format!("Total unique users gotten within the selected date: {number}")
+            }
+            CardType::DeletedMessage => {
+                format!("Deleted message gotten within the selected date: {number}")
+            }
+            CardType::MemberCount => {
+                format!("The final member count at the end of the selected date: {number}")
+            }
+            CardType::MemberJoin => {
+                format!("The number of new members within the selected date: {number}")
+            }
+            CardType::MemberLeave => {
+                format!("The number of member leaves within the selected date: {number}")
+            }
+        };
+
+        let content_text = ui.ctx().animate_value_with_time(id, number as f32, 1.0) as u32;
+
+        if let Some(compare_with) = compare_num {
+            let difference = compare_number(ui, compare_with, content_text, compare_id.unwrap());
+            header_text += &format!(" {difference}");
+
+            let header_text_len = header_text.chars().count();
+            if header_text_len > *max_content {
+                *max_content = header_text_len
+            }
+
+            let compare_hover_text = match card_type {
+                CardType::TotalMessage => {
+                    format!("\nTotal message gotten within the compare date: {compare_with}")
+                }
+                CardType::DeletedMessage => {
+                    format!("\nDeleted message gotten within the compare date: {compare_with}")
+                }
+                CardType::UniqueUser => {
+                    format!("\nUnique members within the compare date: {compare_with}")
+                }
+                CardType::MemberCount => format!(
+                    "\nThe final member count at the end of the compare date: {compare_with}",
+                ),
+                CardType::MemberJoin => {
+                    format!("\nThe number of new members within the compare date: {compare_with}")
+                }
+                CardType::MemberLeave => {
+                    format!(
+                        "\nThe number of members leaves within the compare date: {compare_with}"
+                    )
+                }
+            };
+
+            hover_text += &compare_hover_text;
+        }
+
+        ui.add(Card::new(
+            to_header(header_text),
+            to_header(content_text),
+            x_size,
+            y_size,
+        ))
+        .on_hover_text(hover_text);
+    }
+}
+pub enum CardType {
+    TotalMessage,
+    UniqueUser,
+    DeletedMessage,
+    MemberCount,
+    MemberJoin,
+    MemberLeave,
 }
 
 impl ChangeLog {

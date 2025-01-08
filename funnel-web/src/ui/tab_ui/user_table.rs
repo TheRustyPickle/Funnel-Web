@@ -227,7 +227,7 @@ impl UserRowData {
 
 pub struct UserTable {
     /// Key: The Date where at least one message/User was found
-    /// Value: A hashmap of the founded User with their user id as the key
+    /// Value: A HashMap of the founded User with their user id as the key
     /// Contains all data points and UI points are recreated from here
     user_data: HashMap<NaiveDate, HashMap<i64, UserRowData>>,
     table: SelectableTable<UserRowData, ColumnName, Config>,
@@ -333,7 +333,7 @@ impl UserTable {
         // here if update is necessary in the main UI, if yes, send an event for processing
         let needs_update = self.date_handler.update_dates(local_date);
         if needs_update {
-            event_bus.publish(AppEvent::TableUpdateDate(local_date, guild_id));
+            event_bus.publish(AppEvent::UpdateDate(local_date, guild_id));
         }
 
         let total_char = message_text.len() as u32;
