@@ -47,9 +47,9 @@ impl MainWindow {
                         }
                     }
                 }
-                // Messages were gotten from the server and table is asking to update the earliest
+                // Messages were gotten from the server and one of the tab is asking to update the earliest
                 // to the latest date with at least 1 message
-                AppEvent::TableUpdateDate(date, guild_id) => {
+                AppEvent::UpdateDate(date, guild_id) => {
                     let date_handler = self.panels.date_update(date, guild_id);
                     self.tabs.set_date_handler(guild_id, date_handler);
                 }

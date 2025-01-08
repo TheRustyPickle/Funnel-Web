@@ -80,7 +80,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             }
 
             for count in counts {
-                window.tabs.handle_member_count(guild_id, count);
+                window
+                    .tabs
+                    .handle_member_count(guild_id, count, &mut window.event_bus);
             }
 
             window.tabs.clear_chart_labels(guild_id);
@@ -107,7 +109,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             }
 
             for activity in activities {
-                window.tabs.handle_member_activity(guild_id, activity);
+                window
+                    .tabs
+                    .handle_member_activity(guild_id, activity, &mut window.event_bus);
             }
 
             window.tabs.clear_chart_labels(guild_id);

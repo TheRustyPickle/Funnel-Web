@@ -50,7 +50,7 @@ pub enum AppEvent {
     DateChanged,
     CompareDate,
     StartWebsocket,
-    TableUpdateDate(NaiveDate, i64),
+    UpdateDate(NaiveDate, i64),
     TableNeedsReload(i64),
     OverviewNeedsReload(i64),
     CellsCopied,
