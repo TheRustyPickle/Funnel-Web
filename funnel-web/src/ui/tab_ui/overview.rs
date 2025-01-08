@@ -10,9 +10,9 @@ use log::info;
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
-use crate::core::{compare_number, to_header};
+use crate::core::to_header;
 use crate::ui::{AnimatedMenuLabel, Card, DateHandler, DateNavigator, ShowUI, TabHandler};
-use crate::{AppEvent, ChartType, EventBus};
+use crate::{AppEvent, CardData, CardType, ChartType, EventBus};
 
 #[derive(Default)]
 pub struct ActivityData {
@@ -109,7 +109,9 @@ impl ShowUI for Overview {
     fn show_ui(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
         if !self.show_full_chart {
             self.show_compare_buttons(ui, event_bus);
-            self.show_card_ui(ui);
+            ui.vertical(|ui| {
+                self.show_card_ui(ui);
+            });
             ui.add_space(10.0);
         }
         self.show_member_chart(ui);
@@ -430,202 +432,255 @@ impl Overview {
 
     fn show_card_ui(&mut self, ui: &mut Ui) {
         let total_message_id = ui.make_persistent_id("overview_total_message");
+        let deleted_message_id = ui.make_persistent_id("overivew_message_deleted");
         let unique_user_id = ui.make_persistent_id("overview_unique_user");
         let member_count_id = ui.make_persistent_id("overivew_member_count");
+        let member_join_id = ui.make_persistent_id("overview_member_join");
+        let member_leave_id = ui.make_persistent_id("overview_member_leave");
 
         let compare_total_message = ui.make_persistent_id("overview_compare_message");
+        let compare_deleted_message = ui.make_persistent_id("overview_compare_deleted_message");
         let compare_unique_user = ui.make_persistent_id("overview_compare_user");
         let compare_member_count = ui.make_persistent_id("overview_compare_member_count");
+        let compare_member_join = ui.make_persistent_id("overview_compare_member_join");
+        let compare_member_leave = ui.make_persistent_id("overview_compare_member_leave");
 
         let space_3_item = ui.make_persistent_id("card_space_3");
         let space_2_item = ui.make_persistent_id("card_space_2");
 
-        ui.vertical(|ui| {
-            let has_compare = self.compare_data.is_some();
+        let has_compare = self.compare_data.is_some();
 
-            if !has_compare {
-                ui.ctx().animate_value_with_time(compare_total_message, 0.0, 0.0);
-                ui.ctx().animate_value_with_time(compare_unique_user, 0.0, 0.0);
-                ui.ctx().animate_value_with_time(compare_member_count, 0.0, 0.0);
-            }
+        if !has_compare {
+            ui.ctx()
+                .animate_value_with_time(compare_total_message, 0.0, 0.0);
+            ui.ctx()
+                .animate_value_with_time(compare_deleted_message, 0.0, 0.0);
+            ui.ctx()
+                .animate_value_with_time(compare_unique_user, 0.0, 0.0);
+            ui.ctx()
+                .animate_value_with_time(compare_member_count, 0.0, 0.0);
+            ui.ctx()
+                .animate_value_with_time(compare_member_join, 0.0, 0.0);
+            ui.ctx()
+                .animate_value_with_time(compare_member_leave, 0.0, 0.0);
+        }
 
-            let x_size = if self.max_content != usize::default() && has_compare {
-                self.max_content as f32 * 12.0
+        let x_size = if self.max_content != usize::default() && has_compare {
+            self.max_content as f32 * 12.0
+        } else {
+            250.0
+        };
+        let y_size = 70.0;
+
+        let mut space_3 = 0.0;
+        let mut space_2 = 0.0;
+
+        if self.card_size != 0.0 {
+            let max_size = ui.available_width();
+            let space_taken = 3.0 * self.card_size;
+            let remaining = max_size - space_taken;
+            let remaining = ui.painter().round_to_pixel_center(remaining);
+            let space_amount = ui
+                .ctx()
+                .animate_value_with_time(space_3_item, remaining / 2.0, 0.5);
+            space_3 = space_amount;
+
+            let space_taken = 2.0 * self.card_size;
+            let remaining = max_size - space_taken;
+            let remaining = ui.painter().round_to_pixel_center(remaining);
+            let space_amount = ui
+                .ctx()
+                .animate_value_with_time(space_2_item, remaining / 2.0, 0.5);
+            space_2 = space_amount;
+        } else {
+            ui.ctx().animate_value_with_time(space_3_item, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(space_2_item, 0.0, 0.0);
+
+            ui.ctx().animate_value_with_time(total_message_id, 0.0, 0.0);
+            ui.ctx()
+                .animate_value_with_time(deleted_message_id, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(unique_user_id, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(member_count_id, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(member_join_id, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(member_leave_id, 0.0, 0.0);
+        }
+
+        ui.horizontal(|ui| {
+            ui.add_space(space_3);
+            let remaining_width = ui.available_width();
+
+            let (compare_id, compare_num) = if has_compare {
+                (
+                    Some(compare_total_message),
+                    Some(self.compare_data.as_ref().unwrap().total_message),
+                )
             } else {
-                250.0
+                (None, None)
             };
-            let y_size = 70.0;
+            CardData {
+                card_type: CardType::TotalMessage,
+                compare_id,
+                compare_num,
+                number: self.data.total_message,
+                id: total_message_id,
+                x_size,
+                y_size,
+            }
+            .add_to_ui(ui, &mut self.max_content);
 
-            let mut space_3 = 0.0;
-            let mut space_2 = 0.0;
+            let space_taken = remaining_width - ui.available_width();
+            self.card_size = space_taken;
 
-            if self.card_size != 0.0 {
-                let max_size = ui.available_width();
-                let space_taken = 3.0 * self.card_size;
-                let remaining = max_size - space_taken;
-                let remaining = ui.painter().round_to_pixel_center(remaining);
-                let space_amount =
-                    ui.ctx()
-                        .animate_value_with_time(space_3_item, remaining / 2.0, 0.5);
-                space_3 = space_amount;
-
-                let space_taken = 2.0 * self.card_size;
-                let remaining = max_size - space_taken;
-                let remaining = ui.painter().round_to_pixel_center(remaining);
-                let space_amount =
-                    ui.ctx()
-                        .animate_value_with_time(space_2_item, remaining / 2.0, 0.5);
-                space_2 = space_amount;
+            let (compare_id, compare_num) = if has_compare {
+                (
+                    Some(compare_deleted_message),
+                    Some(self.compare_data.as_ref().unwrap().deleted_message),
+                )
             } else {
-                ui.ctx().animate_value_with_time(space_3_item, 0.0, 0.0);
-                ui.ctx().animate_value_with_time(space_2_item, 0.0, 0.0);
+                (None, None)
+            };
+            CardData {
+                card_type: CardType::DeletedMessage,
+                compare_id,
+                compare_num,
+                number: self.data.deleted_message,
+                id: deleted_message_id,
+                x_size,
+                y_size,
+            }
+            .add_to_ui(ui, &mut self.max_content);
 
-                ui.ctx().animate_value_with_time(total_message_id, 0.0, 0.0);
-                ui.ctx().animate_value_with_time(unique_user_id, 0.0, 0.0);
-                ui.ctx().animate_value_with_time(member_count_id, 0.0, 0.0);
+            let (compare_id, compare_num) = if has_compare {
+                (
+                    Some(compare_unique_user),
+                    Some(self.compare_data.as_ref().unwrap().unique_user),
+                )
+            } else {
+                (None, None)
+            };
+            CardData {
+                card_type: CardType::UniqueUser,
+                compare_id,
+                compare_num,
+                number: self.data.unique_user,
+                id: unique_user_id,
+                x_size,
+                y_size,
+            }
+            .add_to_ui(ui, &mut self.max_content);
+        });
+
+        ui.add_space(5.0);
+
+        ui.horizontal(|ui| {
+            ui.add_space(space_3);
+
+            let (compare_id, compare_num) = if has_compare {
+                (
+                    Some(compare_member_count),
+                    Some(self.compare_data.as_ref().unwrap().member_count),
+                )
+            } else {
+                (None, None)
+            };
+            CardData {
+                card_type: CardType::MemberCount,
+                compare_id,
+                compare_num,
+                number: self.data.member_count,
+                id: member_count_id,
+                x_size,
+                y_size,
+            }
+            .add_to_ui(ui, &mut self.max_content);
+
+            let (compare_id, compare_num) = if has_compare {
+                (
+                    Some(compare_member_join),
+                    Some(self.compare_data.as_ref().unwrap().member_joins),
+                )
+            } else {
+                (None, None)
+            };
+            CardData {
+                card_type: CardType::MemberJoin,
+                compare_id,
+                compare_num,
+                number: self.data.member_joins,
+                id: member_join_id,
+                x_size,
+                y_size,
+            }
+            .add_to_ui(ui, &mut self.max_content);
+
+            let (compare_id, compare_num) = if has_compare {
+                (
+                    Some(compare_member_leave),
+                    Some(self.compare_data.as_ref().unwrap().member_left),
+                )
+            } else {
+                (None, None)
+            };
+            CardData {
+                card_type: CardType::MemberLeave,
+                compare_id,
+                compare_num,
+                number: self.data.member_left,
+                id: member_leave_id,
+                x_size,
+                y_size,
+            }
+            .add_to_ui(ui, &mut self.max_content);
+        });
+
+        ui.add_space(5.0);
+
+        ui.horizontal(|ui| {
+            let mut hover_text = format!(
+                "The user with the most messages sent within the selected date: {}",
+                &self.data.most_active_member
+            );
+            if has_compare {
+                let comparing_with = self
+                    .compare_data
+                    .as_ref()
+                    .unwrap()
+                    .most_active_member
+                    .to_string();
+                hover_text += &format!(
+                    "\nThe user with the most messages sent within the compare date: {comparing_with}"
+                );
+            }
+            ui.add_space(space_2);
+            ui.add(Card::new(
+                to_header("Most Active Member"),
+                to_header(&self.data.most_active_member),
+                x_size,
+                y_size,
+            ))
+            .on_hover_text(hover_text);
+
+            let mut hover_text =
+                format!( "The channel with the most messages sent within the selected date: {}", &self.data.most_active_channel);
+            if has_compare {
+                let comparing_with = self
+                    .compare_data
+                    .as_ref()
+                    .unwrap()
+                    .most_active_channel
+                    .to_string();
+                hover_text += &format!(
+                "\nThe channel with the most messages sent within the compare date: {comparing_with}"
+            );
             }
 
-            ui.horizontal(|ui| {
-                ui.add_space(space_3);
-                let remaining_width = ui.available_width();
-
-                let mut header_text = "Total Message".to_string();
-                let content_text = ui.ctx().animate_value_with_time(total_message_id, self.data.total_message as f32, 1.0) as u32;
-                let mut hover_text = "Total message gotten within selected time period".to_string();
-                if has_compare {
-                    let comparing_with = self.compare_data.as_ref().unwrap().total_message;
-                    let difference = compare_number(ui,
-                        comparing_with,
-                        content_text,
-                        compare_total_message);
-                    header_text += &format!(" {difference}");
-                    let header_text_len = header_text.chars().count();
-                    if header_text_len > self.max_content {
-                        self.max_content = header_text_len
-                    }
-                    hover_text +=
-                        &format!("\nTotal message gotten in the compare time: {comparing_with}");
-                }
-                ui.add(Card::new(
-                    to_header(header_text),
-                    to_header(content_text),
-                    x_size,
-                    y_size,
-                ))
-                .on_hover_text(hover_text);
-                let space_taken = remaining_width - ui.available_width();
-                self.card_size = space_taken;
-
-                ui.add(Card::new(
-                    to_header("Deleted Message"),
-                    to_header(self.data.deleted_message),
-                    x_size,
-                    y_size,
-                ));
-
-                let mut header_text = "Unique User".to_string();
-                let content_text = ui.ctx().animate_value_with_time(unique_user_id, self.data.unique_user as f32, 0.5) as u32;
-                let mut hover_text =
-                    "Total unique users gotten within selected time period".to_string();
-
-                if has_compare {
-                    let comparing_with = self.compare_data.as_ref().unwrap().unique_user;
-                    let difference = compare_number(ui, comparing_with, content_text, compare_unique_user);
-                    header_text += &format!(" {difference}");
-                    hover_text += &format!(
-                        "\nTotal unique users gotten in the compare time: {comparing_with}"
-                    );
-                    let header_text_len = header_text.chars().count();
-                    if header_text_len > self.max_content {
-                        self.max_content = header_text_len
-                    }
-                }
-
-                ui.add(Card::new(
-                    to_header(header_text),
-                    to_header(content_text),
-                    x_size,
-                    y_size,
-                ))
-                .on_hover_text(hover_text);
-            });
-
-            ui.add_space(5.0);
-
-            ui.horizontal(|ui| {
-                ui.add_space(space_3);
-
-                let mut header_text = "Member Count".to_string();
-                let content_text = ui.ctx().animate_value_with_time(member_count_id, self.data.member_count as f32, 0.5) as u32;
-                let mut hover_text =
-                    "The final member count at the end of the selected date".to_string();
-
-                if has_compare {
-                    let comparing_with = self.compare_data.as_ref().unwrap().member_count;
-                    let difference = compare_number(ui, comparing_with, content_text, compare_member_count);
-                    header_text += &format!(" {difference}");
-                    hover_text += &format!(
-                        "\nThe final member count at the end of the selected compare date: {comparing_with}"
-                    );
-                    let header_text_len = header_text.chars().count();
-                    if header_text_len > self.max_content {
-                        self.max_content = header_text_len
-                    }
-                }
-                ui.add(Card::new(
-                    to_header(header_text),
-                    to_header(content_text),
-                    x_size,
-                    y_size,
-                )).on_hover_text(hover_text);
-                ui.add(Card::new(
-                    to_header("Member Joins"),
-                    to_header(self.data.member_joins),
-                    x_size,
-                    y_size,
-                ));
-                ui.add(Card::new(
-                    to_header("Member Left"),
-                    to_header(self.data.member_left),
-                    x_size,
-                    y_size,
-                ));
-            });
-
-            ui.add_space(5.0);
-
-            ui.horizontal(|ui| {
-                let mut hover_text = "The user with the most messages sent within selected time period".to_string();
-                if has_compare {
-                    let comparing_with = self.compare_data.as_ref().unwrap().most_active_member.to_string();
-                    hover_text += &format!(
-                        "\nThe user with the most messages sent in the compare time: {comparing_with}"
-                    );
-                }
-                ui.add_space(space_2);
-                ui.add(Card::new(
-                    to_header("Most Active Member"),
-                    to_header(&self.data.most_active_member),
-                    x_size,
-                    y_size,
-                )).on_hover_text(hover_text);
-
-
-                let mut hover_text = "The channel with the most messages sent within selected time period".to_string();
-                if has_compare {
-                    let comparing_with = self.compare_data.as_ref().unwrap().most_active_channel.to_string();
-                    hover_text += &format!(
-                        "\nThe channel with the most messages sent in the compare time: {comparing_with}"
-                    );
-                }
-
-                ui.add(Card::new(
-                    to_header("Most Active Channel"),
-                    to_header(&self.data.most_active_channel),
-                    x_size,
-                    y_size,
-                )).on_hover_text(hover_text);
-            })
+            ui.add(Card::new(
+                to_header("Most Active Channel"),
+                to_header(&self.data.most_active_channel),
+                x_size,
+                y_size,
+            ))
+            .on_hover_text(hover_text);
         });
     }
 
@@ -794,11 +849,20 @@ impl Overview {
         }
     }
 
-    fn handle_member_data(&mut self, count: MemberCount) {
+    fn handle_member_data(&mut self, count: MemberCount, event_bus: &mut EventBus) {
         let total_members = count.total_members;
         let timestamp = count.count_timestamp;
+        let guild_id = count.guild_id;
+
         let (hourly_time, daily_time, weekly_time, monthly_time) =
             self.add_missing_date(timestamp, true, false, false);
+
+        let daily_date = daily_time.date();
+
+        let needs_update = self.date_handler.update_dates(daily_date);
+        if needs_update {
+            event_bus.publish(AppEvent::UpdateDate(daily_date, guild_id));
+        }
 
         self.get_count_m().hourly.insert(hourly_time, total_members);
         self.get_count_m().daily.insert(daily_time, total_members);
@@ -864,12 +928,20 @@ impl Overview {
         member_count
     }
 
-    fn handle_member_activity(&mut self, activity: MemberActivity) {
+    fn handle_member_activity(&mut self, activity: MemberActivity, event_bus: &mut EventBus) {
         let timestamp = activity.activity_timestamp;
         let is_join = activity.join_activity;
+        let guild_id = activity.guild_id;
 
         let (hourly_time, daily_time, weekly_time, monthly_time) =
             self.add_missing_date(timestamp, false, is_join, !is_join);
+
+        let daily_date = daily_time.date();
+
+        let needs_update = self.date_handler.update_dates(daily_date);
+        if needs_update {
+            event_bus.publish(AppEvent::UpdateDate(daily_date, guild_id));
+        }
 
         if is_join {
             let target_val = self.get_joins_m().hourly.entry(hourly_time).or_default();
@@ -1099,18 +1171,28 @@ impl TabHandler {
         self.overview.get_mut(&guild_id).unwrap().compare_data = None;
     }
 
-    pub fn handle_member_count(&mut self, guild_id: i64, count: MemberCount) {
+    pub fn handle_member_count(
+        &mut self,
+        guild_id: i64,
+        count: MemberCount,
+        event_bus: &mut EventBus,
+    ) {
         self.overview
             .get_mut(&guild_id)
             .unwrap()
-            .handle_member_data(count);
+            .handle_member_data(count, event_bus);
     }
 
-    pub fn handle_member_activity(&mut self, guild_id: i64, activity: MemberActivity) {
+    pub fn handle_member_activity(
+        &mut self,
+        guild_id: i64,
+        activity: MemberActivity,
+        event_bus: &mut EventBus,
+    ) {
         self.overview
             .get_mut(&guild_id)
             .unwrap()
-            .handle_member_activity(activity);
+            .handle_member_activity(activity, event_bus);
     }
 
     pub fn clear_chart_labels(&mut self, guild_id: i64) {
