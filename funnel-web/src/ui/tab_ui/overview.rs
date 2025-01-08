@@ -51,7 +51,7 @@ pub struct OverviewData {
     unique_user: u32,
     member_count: u32,
     member_joins: u32,
-    member_left: u32,
+    member_leaves: u32,
     most_active_member: String,
     most_active_channel: String,
 }
@@ -616,7 +616,7 @@ impl Overview {
             let (compare_id, compare_num) = if has_compare {
                 (
                     Some(compare_member_leave),
-                    Some(self.compare_data.as_ref().unwrap().member_left),
+                    Some(self.compare_data.as_ref().unwrap().member_leaves),
                 )
             } else {
                 (None, None)
@@ -625,7 +625,7 @@ impl Overview {
                 card_type: CardType::MemberLeave,
                 compare_id,
                 compare_num,
-                number: self.data.member_left,
+                number: self.data.member_leaves,
                 id: member_leave_id,
                 x_size,
                 y_size,
@@ -730,6 +730,9 @@ impl Overview {
         let mut deleted_message = 0;
         self.reload_count = 0;
 
+        let mut member_joins = 0;
+        let mut member_leaves = 0;
+
         self.activity_data
             .iter()
             .filter(|(date, _)| self.date_handler.within_range(**date))
@@ -744,6 +747,26 @@ impl Overview {
                     }
                     deleted_message += activity.deleted_message;
                 }
+            });
+
+        self.chart_data
+            .get("joins")
+            .unwrap()
+            .daily
+            .iter()
+            .filter(|(date, _)| self.date_handler.within_range(date.date()))
+            .for_each(|(_, count)| {
+                member_joins += count;
+            });
+
+        self.chart_data
+            .get("leaves")
+            .unwrap()
+            .daily
+            .iter()
+            .filter(|(date, _)| self.date_handler.within_range(date.date()))
+            .for_each(|(_, count)| {
+                member_leaves += count;
             });
 
         let unique_user = member_message_count.len() as u32;
@@ -771,8 +794,8 @@ impl Overview {
             deleted_message,
             member_count: self.find_member_count(to_date),
             unique_user,
-            member_joins: 0,
-            member_left: 0,
+            member_joins: member_joins as u32,
+            member_leaves: member_leaves as u32,
             most_active_member: most_active_member.0,
             most_active_channel: channel_name,
         };
@@ -784,6 +807,9 @@ impl Overview {
         let mut channel_message_count = HashMap::new();
         let mut member_message_count = HashMap::new();
         let mut total_message = 0;
+
+        let mut member_joins = 0;
+        let mut member_leaves = 0;
 
         self.activity_data
             .iter()
@@ -798,6 +824,26 @@ impl Overview {
                         total_message += count;
                     }
                 }
+            });
+
+        self.chart_data
+            .get("joins")
+            .unwrap()
+            .daily
+            .iter()
+            .filter(|(date, _)| self.compare_nav.handler().within_range(date.date()))
+            .for_each(|(_, count)| {
+                member_joins += count;
+            });
+
+        self.chart_data
+            .get("leaves")
+            .unwrap()
+            .daily
+            .iter()
+            .filter(|(date, _)| self.compare_nav.handler().within_range(date.date()))
+            .for_each(|(_, count)| {
+                member_leaves += count;
             });
 
         let unique_user = member_message_count.len() as u32;
@@ -825,8 +871,8 @@ impl Overview {
             deleted_message: 0,
             member_count: self.find_member_count(compare_to_date),
             unique_user,
-            member_joins: 0,
-            member_left: 0,
+            member_joins: member_joins as u32,
+            member_leaves: member_leaves as u32,
             most_active_member: most_active_member.0,
             most_active_channel: channel_name,
         };
@@ -969,7 +1015,7 @@ impl Overview {
 
             let to_use = *target_val;
             if daily_time.date() <= self.date_handler.to {
-                self.data.member_left = to_use as u32;
+                self.data.member_leaves = to_use as u32;
             }
 
             let target_val = self.get_leaves_m().weekly.entry(weekly_time).or_default();
