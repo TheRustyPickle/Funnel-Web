@@ -907,6 +907,7 @@ dependencies = [
  "bytemuck",
  "ecolor",
  "emath",
+ "epaint_default_fonts",
  "log",
  "nohash-hasher",
  "parking_lot",
@@ -914,6 +915,12 @@ dependencies = [
  "rayon",
  "serde",
 ]
+
+[[package]]
+name = "epaint_default_fonts"
+version = "0.30.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66f6ddac3e6ac6fd4c3d48bb8b1943472f8da0f43a4303bcd8a18aa594401c80"
 
 [[package]]
 name = "equivalent"
@@ -1694,9 +1701,9 @@ dependencies = [
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.4.14"
+version = "0.4.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78b3ae25bc7c8c38cec158d1f2757ee79e9b3740fbc7ccf0e59e4b08d793fa89"
+checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
 
 [[package]]
 name = "litemap"

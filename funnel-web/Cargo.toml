@@ -12,6 +12,7 @@ chrono = "0.4.39"
 eframe = { version = "0.30.0", default-features = false, features = [
     "x11",
     "wayland",
+    "default_fonts",
     "glow",
 ] }
 egui-selectable-table = "0.1.2"
