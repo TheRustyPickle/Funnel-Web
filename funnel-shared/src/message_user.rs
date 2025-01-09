@@ -6,7 +6,7 @@ pub struct Message {
     pub channel_id: i64,
     pub message_id: i64,
     pub message_timestamp: i64,
-    pub sender_id: i64,
+    pub sender_id: Option<i64>,
     pub message_content: Option<String>,
     pub stripped_content: Option<String>,
     pub delete_timestamp: Option<i64>,
