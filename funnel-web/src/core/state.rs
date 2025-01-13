@@ -90,6 +90,8 @@ pub enum ColumnName {
     UserID,
     #[strum(to_string = "Total Message")]
     TotalMessage,
+    #[strum(to_string = "Deleted Message")]
+    DeletedMessage,
     #[strum(to_string = "Total Word")]
     TotalWord,
     #[strum(to_string = "Total Char")]
@@ -102,6 +104,8 @@ pub enum ColumnName {
     FirstMessageSeen,
     #[strum(to_string = "Last Message Seen")]
     LastMessageSeen,
+    #[strum(to_string = "Unique Channels")]
+    UniqueChannels,
 }
 
 #[derive(Default, Copy, Clone, Eq, PartialEq, Display, EnumIter)]
