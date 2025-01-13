@@ -2,6 +2,8 @@
 
 ## 01.2025
 
+* Reduce total iterations required to build the Overview chart
+* Add deleted message and unique channel count on User Table tab
 * Add handling for member joins and leave data on Overview tab
 * Fix Start page uneven centering of buttons
 * Add custom hover labels and x axis labels on Overview chart

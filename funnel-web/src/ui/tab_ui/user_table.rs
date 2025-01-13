@@ -1,11 +1,12 @@
-use chrono::{DateTime, NaiveDate, NaiveDateTime};
-use eframe::egui::{Align, Layout, Response, RichText, SelectableLabel, Sense, Ui};
+use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
+use eframe::egui::ahash::{HashMap, HashMapExt, HashSet, HashSetExt};
+use eframe::egui::{Align, Layout, Response, RichText, SelectableLabel, Ui};
 use egui_extras::Column;
 use egui_selectable_table::{
     ColumnOperations, ColumnOrdering, SelectableRow, SelectableTable, SortOrder,
 };
 use funnel_shared::{MessageWithUser, PAGE_VALUE};
-use std::collections::HashMap;
+use std::cmp::Ordering;
 use strum::IntoEnumIterator;
 
 use crate::core::ColumnName;
@@ -24,12 +25,14 @@ impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
             ColumnName::Username => row.username.to_string(),
             ColumnName::UserID => row.id.to_string(),
             ColumnName::TotalMessage => row.total_message.to_string(),
+            ColumnName::DeletedMessage => row.deleted_message.to_string(),
             ColumnName::TotalWord => row.total_word.to_string(),
             ColumnName::TotalChar => row.total_char.to_string(),
             ColumnName::AverageWord => row.average_word.to_string(),
             ColumnName::AverageChar => row.average_char.to_string(),
             ColumnName::FirstMessageSeen => row.first_seen.to_string(),
             ColumnName::LastMessageSeen => row.last_seen.to_string(),
+            ColumnName::UniqueChannels => row.unique_channels.len().to_string(),
         }
     }
     fn create_header(
@@ -49,6 +52,9 @@ impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
             }
             ColumnName::TotalMessage => {
                 "Total messages sent by the user. Click to sort by total message".to_string()
+            }
+            ColumnName::DeletedMessage => {
+                "Total deleted message by the user. Click to sort by deleted message".to_string()
             }
             ColumnName::TotalWord => {
                 "Total words in the messages. Click to sort by total words".to_string()
@@ -70,6 +76,10 @@ impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
             }
             ColumnName::LastMessageSeen => {
                 "The date and time the last message that was sent by this user was observed"
+                    .to_string()
+            }
+            ColumnName::UniqueChannels => {
+                "The number of unique channels this user was seen in. Click to sort by unique channels"
                     .to_string()
             }
         };
@@ -94,6 +104,7 @@ impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
             .on_hover_text(hover_text);
         Some(response)
     }
+
     fn create_table_row(
         &self,
         ui: &mut Ui,
@@ -114,21 +125,21 @@ impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
             }
             ColumnName::UserID => row_data.id.to_string(),
             ColumnName::TotalMessage => row_data.total_message.to_string(),
+            ColumnName::DeletedMessage => row_data.deleted_message.to_string(),
             ColumnName::TotalWord => row_data.total_word.to_string(),
             ColumnName::TotalChar => row_data.total_char.to_string(),
             ColumnName::AverageWord => row_data.average_word.to_string(),
             ColumnName::AverageChar => row_data.average_char.to_string(),
             ColumnName::FirstMessageSeen => row_data.first_seen.to_string(),
             ColumnName::LastMessageSeen => row_data.last_seen.to_string(),
+            ColumnName::UniqueChannels => row_data.unique_channels.len().to_string(),
         };
         let is_selected = column_selected;
 
-        let mut label = ui
-            .add_sized(
-                ui.available_size(),
-                SelectableLabel::new(is_selected, &row_text),
-            )
-            .interact(Sense::drag());
+        let mut label = ui.add_sized(
+            ui.available_size(),
+            SelectableLabel::new(is_selected, &row_text),
+        );
 
         if show_tooltip {
             label = label.on_hover_text(row_text);
@@ -144,18 +155,23 @@ impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
 }
 
 impl ColumnOrdering<UserRowData> for ColumnName {
-    fn order_by(&self, row_1: &UserRowData, row_2: &UserRowData) -> std::cmp::Ordering {
+    fn order_by(&self, row_1: &UserRowData, row_2: &UserRowData) -> Ordering {
         match self {
             ColumnName::Name => row_1.name.cmp(&row_2.name),
             ColumnName::Username => row_1.username.cmp(&row_2.username),
             ColumnName::UserID => row_1.id.cmp(&row_2.id),
             ColumnName::TotalMessage => row_1.total_message.cmp(&row_2.total_message),
+            ColumnName::DeletedMessage => row_1.deleted_message.cmp(&row_2.deleted_message),
             ColumnName::TotalWord => row_1.total_word.cmp(&row_2.total_word),
             ColumnName::TotalChar => row_1.total_char.cmp(&row_2.total_char),
             ColumnName::AverageWord => row_1.average_word.cmp(&row_2.average_word),
             ColumnName::AverageChar => row_1.average_char.cmp(&row_2.average_char),
             ColumnName::FirstMessageSeen => row_1.first_seen.cmp(&row_2.first_seen),
             ColumnName::LastMessageSeen => row_1.last_seen.cmp(&row_2.last_seen),
+            ColumnName::UniqueChannels => row_1
+                .unique_channels
+                .len()
+                .cmp(&row_2.unique_channels.len()),
         }
     }
 }
@@ -166,12 +182,14 @@ struct UserRowData {
     username: String,
     id: i64,
     total_message: u32,
+    deleted_message: u32,
     total_word: u32,
     total_char: u32,
     average_word: u32,
     average_char: u32,
     first_seen: NaiveDateTime,
     last_seen: NaiveDateTime,
+    unique_channels: HashSet<i64>,
 }
 
 impl UserRowData {
@@ -183,18 +201,37 @@ impl UserRowData {
             username,
             id,
             total_message: 0,
+            deleted_message: 0,
             total_word: 0,
             total_char: 0,
             average_word: 0,
             average_char: 0,
             first_seen: date,
             last_seen: date,
+            unique_channels: HashSet::new(),
         }
+    }
+
+    fn add_channel(&mut self, channel_id: i64) {
+        self.unique_channels.insert(channel_id);
+    }
+
+    fn extend_channels(&mut self, list: &HashSet<i64>) {
+        self.unique_channels.extend(list);
     }
 
     /// Increment total message count by 1
     fn increment_total_message(&mut self) {
         self.total_message += 1;
+    }
+
+    /// Increment deleted message count by 1
+    fn increment_deleted_message(&mut self) {
+        self.deleted_message += 1;
+    }
+
+    fn increase_deleted_by(&mut self, amount: u32) {
+        self.deleted_message += amount;
     }
 
     /// Increment total message count by `amount`
@@ -234,6 +271,7 @@ pub struct UserTable {
     /// Read only currently selected dates in the UI
     date_handler: DateHandler,
     total_message: u32,
+    deleted_message: u32,
     reload_count: u64,
 }
 
@@ -247,6 +285,7 @@ impl Default for UserTable {
             table,
             date_handler: DateHandler::default(),
             total_message: 0,
+            deleted_message: 0,
             reload_count: 0,
         }
     }
@@ -267,6 +306,8 @@ impl ShowUI for UserTable {
             ui.label(format!("Total Users: {}", self.get_total_user()));
             ui.separator();
             ui.label(format!("Total Message: {}", self.total_message));
+            ui.separator();
+            ui.label(format!("Total deleted message: {}", self.deleted_message));
         });
         ui.separator();
         ui.add_space(5.0);
@@ -304,10 +345,19 @@ impl UserTable {
         };
         let user_id = message.sender.user_id;
         let guild_id = message.message.guild_id;
+        let channel_id = message.message.channel_id;
 
-        let timestamp = &message.message.message_timestamp;
-        let datetime = DateTime::from_timestamp(*timestamp, 0).unwrap();
-        let local_time = datetime.naive_local();
+        let mut deleted_message = false;
+
+        let timestamp = if let Some(time) = message.message.delete_timestamp {
+            deleted_message = true;
+            time
+        } else {
+            message.message.message_timestamp
+        };
+
+        let datetime = DateTime::from_timestamp(timestamp, 0).unwrap();
+        let local_time = datetime.with_timezone(&Local).naive_local();
         let local_date = local_time.date();
 
         let user_row = UserRowData::new(global_name, username, user_id, local_time);
@@ -317,8 +367,6 @@ impl UserTable {
 
         let target_data = self.user_data.get_mut(&local_date).unwrap();
         let user_row_data = target_data.get_mut(&user_id).unwrap();
-
-        let message_text = message.message.message_content.unwrap_or_default();
 
         // Update last and first seen in this date for this user
         if user_row_data.first_seen > local_time {
@@ -336,12 +384,20 @@ impl UserTable {
             event_bus.publish(AppEvent::UpdateDate(local_date, guild_id));
         }
 
-        let total_char = message_text.len() as u32;
-        let total_word = message_text.split_whitespace().count() as u32;
+        if !deleted_message {
+            let message_text = message.message.message_content.unwrap_or_default();
 
-        user_row_data.increment_total_message();
-        user_row_data.increment_total_word(total_word);
-        user_row_data.increment_total_char(total_char);
+            let total_char = message_text.len() as u32;
+            let total_word = message_text.split_whitespace().count() as u32;
+
+            user_row_data.increment_total_message();
+            user_row_data.increment_total_word(total_word);
+            user_row_data.increment_total_char(total_char);
+        } else {
+            user_row_data.increment_deleted_message();
+        }
+
+        user_row_data.add_channel(channel_id);
 
         if self.reload_count == PAGE_VALUE * 5 {
             event_bus.publish_if_needed(AppEvent::TableNeedsReload(guild_id));
@@ -357,6 +413,7 @@ impl UserTable {
         self.reload_count = 0;
         self.table.clear_all_rows();
         let mut total_message = 0;
+        let mut deleted_message = 0;
         let mut id_map = HashMap::new();
 
         // Go by all the data that are within the range and join them together
@@ -367,6 +424,7 @@ impl UserTable {
 
             for (id, row) in data {
                 total_message += row.total_message;
+                deleted_message += row.deleted_message;
 
                 if let Some(row_id) = id_map.get(id) {
                     self.table.add_modify_row(|rows| {
@@ -384,10 +442,14 @@ impl UserTable {
                         let total_char = row.total_char;
                         let total_word = row.total_word;
                         let total_message = row.total_message;
+                        let deleted_message = row.deleted_message;
+                        let channel_list = &row.unique_channels;
 
                         user_row_data.increase_message_by(total_message);
+                        user_row_data.increase_deleted_by(deleted_message);
                         user_row_data.increment_total_word(total_word);
                         user_row_data.increment_total_char(total_char);
+                        user_row_data.extend_channels(channel_list);
                         None
                     });
                 } else {
@@ -397,6 +459,7 @@ impl UserTable {
             }
         }
         self.total_message = total_message;
+        self.deleted_message = deleted_message;
         self.table.recreate_rows();
     }
 
