@@ -2,12 +2,12 @@ use chrono::{
     DateTime, Datelike, Duration, Local, Months, NaiveDate, NaiveDateTime, Timelike, Weekday,
 };
 use core::ops::RangeInclusive;
+use eframe::egui::ahash::{HashMap, HashMapExt};
 use eframe::egui::Ui;
 use egui_plot::{AxisHints, GridMark, Legend, Line, Plot, PlotPoint, PlotPoints};
 use funnel_shared::{Channel, MemberActivity, MemberCount, MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
 use log::info;
-use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
 use crate::core::to_header;
@@ -274,12 +274,21 @@ impl Overview {
 
         let mut not_generated_yet = true;
 
+        let start_datetime = self.date_handler.from.and_hms_opt(0, 0, 0).unwrap();
+
         if self.show_count {
+            let start_index = self
+                .get_target_data_count()
+                .get_index_of(&start_datetime)
+                .unwrap_or(0);
+
             let mut index = 0.0;
             let points: PlotPoints = self
                 .get_target_data_count()
                 .clone()
                 .into_iter()
+                .skip(start_index)
+                .take_while(|(date, _)| date.date() <= self.date_handler.to)
                 .filter_map(|(date, count)| {
                     if !self.date_handler.within_range(date.date()) {
                         return None;
@@ -298,11 +307,18 @@ impl Overview {
         }
 
         if self.show_joins {
+            let start_index = self
+                .get_target_data_joins()
+                .get_index_of(&start_datetime)
+                .unwrap_or(0);
+
             let mut index = 0.0;
             let points: PlotPoints = self
                 .get_target_data_joins()
                 .clone()
                 .into_iter()
+                .skip(start_index)
+                .take_while(|(date, _)| date.date() <= self.date_handler.to)
                 .filter_map(|(date, count)| {
                     if !self.date_handler.within_range(date.date()) {
                         return None;
@@ -326,11 +342,18 @@ impl Overview {
         }
 
         if self.show_leaves {
+            let start_index = self
+                .get_target_data_joins()
+                .get_index_of(&start_datetime)
+                .unwrap_or(0);
+
             let mut index = 0.0;
             let points: PlotPoints = self
                 .get_target_data_leaves()
                 .clone()
                 .into_iter()
+                .skip(start_index)
+                .take_while(|(date, _)| date.date() <= self.date_handler.to)
                 .filter_map(|(date, count)| {
                     if !self.date_handler.within_range(date.date()) {
                         return None;
@@ -706,11 +729,11 @@ impl Overview {
         let entry = self.activity_data.entry(local_date).or_default();
 
         let target_entry = entry.entry(username.to_string()).or_insert(activity);
+        let count_entry = target_entry.message_count.entry(channel_id).or_default();
 
         if deleted_message {
             target_entry.deleted_message += 1;
         } else {
-            let count_entry = target_entry.message_count.entry(channel_id).or_default();
             *count_entry += 1;
         }
 
