@@ -1,11 +1,11 @@
 use chrono::NaiveDate;
+use eframe::egui::ahash::{HashSet, HashSetExt};
 use eframe::egui::{
     menu, Align, CentralPanel, Context, Image, ImageButton, Layout, Rounding, ScrollArea,
     SidePanel, Spinner, TopBottomPanel, Visuals,
 };
 use egui_theme_lerp::ThemeAnimator;
 use funnel_shared::GuildWithChannels;
-use std::collections::HashSet;
 use strum::IntoEnumIterator;
 
 use crate::core::{MainWindow, TabState};
