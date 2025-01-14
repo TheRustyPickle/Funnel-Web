@@ -707,7 +707,7 @@ impl Overview {
         });
     }
 
-    fn handle_message(&mut self, message: MessageWithUser, event_bus: &mut EventBus) {
+    fn handle_message(&mut self, message: &MessageWithUser, event_bus: &mut EventBus) {
         let username = &message.sender.username;
         let channel_id = message.message.channel_id;
         let guild_id = message.message.guild_id;
@@ -1210,7 +1210,7 @@ impl Overview {
 }
 
 impl TabHandler {
-    pub fn handle_message_overview(&mut self, message: MessageWithUser, event_bus: &mut EventBus) {
+    pub fn handle_message_overview(&mut self, message: &MessageWithUser, event_bus: &mut EventBus) {
         let guild_id = message.message.guild_id;
         self.overview
             .get_mut(&guild_id)
@@ -1218,7 +1218,7 @@ impl TabHandler {
             .handle_message(message, event_bus)
     }
 
-    pub fn set_channel_map(&mut self, guild_id: i64, channels: Vec<Channel>) {
+    pub fn set_overview_channel_map(&mut self, guild_id: i64, channels: Vec<Channel>) {
         self.overview
             .get_mut(&guild_id)
             .unwrap()

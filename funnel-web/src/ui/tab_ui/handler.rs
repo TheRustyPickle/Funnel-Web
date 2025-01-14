@@ -1,13 +1,14 @@
 use eframe::egui::ahash::HashMap;
 use eframe::egui::Ui;
 
-use crate::ui::{DateHandler, Overview, UserTable};
+use crate::ui::{ChannelTable, DateHandler, Overview, UserTable};
 use crate::{EventBus, TabState};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub enum ReloadTab {
     Overview,
-    Table,
+    UserTable,
+    ChannelTable,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -21,6 +22,7 @@ pub struct TabHandler {
     pub current_guild: i64,
     pub overview: HashMap<i64, Overview>,
     pub user_table: HashMap<i64, UserTable>,
+    pub channel_table: HashMap<i64, ChannelTable>,
     pub pending_reloads: Vec<PendingReload>,
 }
 
@@ -45,6 +47,11 @@ impl TabHandler {
             ),
             TabState::UserTable => show_ui(
                 self.user_table
+                    .get_mut(&self.current_guild)
+                    .map(|u| u as &mut dyn ShowUI),
+            ),
+            TabState::ChannelTable => show_ui(
+                self.channel_table
                     .get_mut(&self.current_guild)
                     .map(|u| u as &mut dyn ShowUI),
             ),
@@ -73,6 +80,7 @@ impl TabHandler {
     pub fn set_data(&mut self, id: i64) {
         self.overview.insert(id, Overview::default());
         self.user_table.insert(id, UserTable::default());
+        self.channel_table.insert(id, ChannelTable::default());
     }
 
     pub fn set_current_guild(&mut self, id: i64) {
@@ -85,6 +93,10 @@ impl TabHandler {
             .unwrap()
             .set_date_handler(handler);
         self.user_table
+            .get_mut(&guild_id)
+            .unwrap()
+            .set_date_handler(handler);
+        self.channel_table
             .get_mut(&guild_id)
             .unwrap()
             .set_date_handler(handler);
@@ -104,9 +116,15 @@ impl TabHandler {
                         to_remove_indices.push(index);
                     }
                 }
-                ReloadTab::Table => {
+                ReloadTab::UserTable => {
                     if TabState::UserTable == *state {
-                        self.recreate_rows(pending_reload.guild_id);
+                        self.user_table_recreate_rows(pending_reload.guild_id);
+                        to_remove_indices.push(index);
+                    }
+                }
+                ReloadTab::ChannelTable => {
+                    if TabState::ChannelTable == *state {
+                        self.channel_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }

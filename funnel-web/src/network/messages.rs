@@ -25,7 +25,10 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 window.tabs.set_data(guild_id);
                 window
                     .tabs
-                    .set_channel_map(guild.guild.guild_id, guild.channels.clone())
+                    .set_overview_channel_map(guild.guild.guild_id, guild.channels.clone());
+                window
+                    .tabs
+                    .set_channel_table_channel_map(guild.guild.guild_id, guild.channels.clone());
             }
             window.panels.set_guild_channels(guilds);
             window
@@ -36,7 +39,10 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             if messages.is_empty() {
                 window
                     .event_bus
-                    .publish_if_needed(AppEvent::TableNeedsReload(guild_id));
+                    .publish_if_needed(AppEvent::UserTableNeedsReload(guild_id));
+                window
+                    .event_bus
+                    .publish_if_needed(AppEvent::ChannelTableNeedsReload(guild_id));
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
@@ -52,16 +58,22 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             for message in messages {
                 window
                     .tabs
-                    .handle_message_user_table(message.clone(), &mut window.event_bus);
+                    .handle_message_user_table(&message, &mut window.event_bus);
                 window
                     .tabs
-                    .handle_message_overview(message, &mut window.event_bus);
+                    .handle_message_channel_table(&message, &mut window.event_bus);
+                window
+                    .tabs
+                    .handle_message_overview(&message, &mut window.event_bus);
             }
 
             if !do_new_page {
                 window
                     .event_bus
-                    .publish_if_needed(AppEvent::TableNeedsReload(guild_id));
+                    .publish_if_needed(AppEvent::UserTableNeedsReload(guild_id));
+                window
+                    .event_bus
+                    .publish_if_needed(AppEvent::ChannelTableNeedsReload(guild_id));
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
