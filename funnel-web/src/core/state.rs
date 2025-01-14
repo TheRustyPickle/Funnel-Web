@@ -51,7 +51,8 @@ pub enum AppEvent {
     CompareDate,
     StartWebsocket,
     UpdateDate(NaiveDate, i64),
-    TableNeedsReload(i64),
+    UserTableNeedsReload(i64),
+    ChannelTableNeedsReload(i64),
     OverviewNeedsReload(i64),
     CellsCopied,
     GuildChanged,
@@ -82,7 +83,7 @@ impl AppStatus {
 }
 
 #[derive(EnumIter, Display, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Copy)]
-pub enum ColumnName {
+pub enum UserColumn {
     #[default]
     Name,
     Username,
@@ -106,6 +107,24 @@ pub enum ColumnName {
     LastMessageSeen,
     #[strum(to_string = "Unique Channels")]
     UniqueChannels,
+}
+
+#[derive(EnumIter, Display, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Copy)]
+pub enum ChannelColumn {
+    #[default]
+    Name,
+    #[strum(to_string = "Channel ID")]
+    ID,
+    #[strum(to_string = "Total Message")]
+    TotalMessage,
+    #[strum(to_string = "Deleted Message")]
+    DeletedMessage,
+    #[strum(to_string = "First Message Seen")]
+    FirstMessage,
+    #[strum(to_string = "Last Message Time")]
+    LastMessage,
+    #[strum(to_string = "Unique Users")]
+    UniqueUsers,
 }
 
 #[derive(Default, Copy, Clone, Eq, PartialEq, Display, EnumIter)]
