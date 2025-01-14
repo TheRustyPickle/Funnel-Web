@@ -9,7 +9,7 @@ use funnel_shared::{MessageWithUser, PAGE_VALUE};
 use std::cmp::Ordering;
 use strum::IntoEnumIterator;
 
-use crate::core::ColumnName;
+use crate::core::UserColumn;
 use crate::ui::{DateHandler, ShowUI, TabHandler};
 use crate::{AppEvent, EventBus};
 
@@ -18,67 +18,67 @@ pub struct Config {
     copy_selected: bool,
 }
 
-impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
+impl ColumnOperations<UserRowData, UserColumn, Config> for UserColumn {
     fn column_text(&self, row: &UserRowData) -> String {
         match self {
-            ColumnName::Name => row.name.to_string(),
-            ColumnName::Username => row.username.to_string(),
-            ColumnName::UserID => row.id.to_string(),
-            ColumnName::TotalMessage => row.total_message.to_string(),
-            ColumnName::DeletedMessage => row.deleted_message.to_string(),
-            ColumnName::TotalWord => row.total_word.to_string(),
-            ColumnName::TotalChar => row.total_char.to_string(),
-            ColumnName::AverageWord => row.average_word.to_string(),
-            ColumnName::AverageChar => row.average_char.to_string(),
-            ColumnName::FirstMessageSeen => row.first_seen.to_string(),
-            ColumnName::LastMessageSeen => row.last_seen.to_string(),
-            ColumnName::UniqueChannels => row.unique_channels.len().to_string(),
+            UserColumn::Name => row.name.to_string(),
+            UserColumn::Username => row.username.to_string(),
+            UserColumn::UserID => row.id.to_string(),
+            UserColumn::TotalMessage => row.total_message.to_string(),
+            UserColumn::DeletedMessage => row.deleted_message.to_string(),
+            UserColumn::TotalWord => row.total_word.to_string(),
+            UserColumn::TotalChar => row.total_char.to_string(),
+            UserColumn::AverageWord => row.average_word.to_string(),
+            UserColumn::AverageChar => row.average_char.to_string(),
+            UserColumn::FirstMessageSeen => row.first_seen.to_string(),
+            UserColumn::LastMessageSeen => row.last_seen.to_string(),
+            UserColumn::UniqueChannels => row.unique_channels.len().to_string(),
         }
     }
     fn create_header(
         &self,
-        ui: &mut eframe::egui::Ui,
+        ui: &mut Ui,
         sort_order: Option<SortOrder>,
-        _table: &mut SelectableTable<UserRowData, ColumnName, Config>,
+        _table: &mut SelectableTable<UserRowData, UserColumn, Config>,
     ) -> Option<Response> {
         let mut label_text = self.to_string();
         let hover_text = match self {
-            ColumnName::Name => "Telegram name of the user. Click to sort by name".to_string(),
-            ColumnName::Username => {
-                "Telegram username of the user. Click to sort by username".to_string()
+            UserColumn::Name => "Discord name of the user. Click to sort by name".to_string(),
+            UserColumn::Username => {
+                "Discord username of the user. Click to sort by username".to_string()
             }
-            ColumnName::UserID => {
-                "Telegram User ID of the user. Click to sort by user ID".to_string()
+            UserColumn::UserID => {
+                "Discord User ID of the user. Click to sort by user ID".to_string()
             }
-            ColumnName::TotalMessage => {
+            UserColumn::TotalMessage => {
                 "Total messages sent by the user. Click to sort by total message".to_string()
             }
-            ColumnName::DeletedMessage => {
+            UserColumn::DeletedMessage => {
                 "Total deleted message by the user. Click to sort by deleted message".to_string()
             }
-            ColumnName::TotalWord => {
+            UserColumn::TotalWord => {
                 "Total words in the messages. Click to sort by total words".to_string()
             }
-            ColumnName::TotalChar => {
+            UserColumn::TotalChar => {
                 "Total character in the messages. Click to sort by total character".to_string()
             }
-            ColumnName::AverageWord => {
+            UserColumn::AverageWord => {
                 "Average number of words per message. Click to sort by average words".to_string()
             }
-            ColumnName::AverageChar => {
+            UserColumn::AverageChar => {
                 "Average number of characters per message. Click to sort by average characters"
                     .to_string()
             }
 
-            ColumnName::FirstMessageSeen => {
+            UserColumn::FirstMessageSeen => {
                 "The date and time the first message that was sent by this user was observed"
                     .to_string()
             }
-            ColumnName::LastMessageSeen => {
+            UserColumn::LastMessageSeen => {
                 "The date and time the last message that was sent by this user was observed"
                     .to_string()
             }
-            ColumnName::UniqueChannels => {
+            UserColumn::UniqueChannels => {
                 "The number of unique channels this user was seen in. Click to sort by unique channels"
                     .to_string()
             }
@@ -108,31 +108,31 @@ impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
     fn create_table_row(
         &self,
         ui: &mut Ui,
-        row: &SelectableRow<UserRowData, ColumnName>,
+        row: &SelectableRow<UserRowData, UserColumn>,
         column_selected: bool,
-        table: &mut SelectableTable<UserRowData, ColumnName, Config>,
+        table: &mut SelectableTable<UserRowData, UserColumn, Config>,
     ) -> Response {
         let row_data = &row.row_data;
         let mut show_tooltip = false;
         let row_text = match self {
-            ColumnName::Name => {
+            UserColumn::Name => {
                 show_tooltip = true;
                 row_data.name.clone()
             }
-            ColumnName::Username => {
+            UserColumn::Username => {
                 show_tooltip = true;
                 row_data.username.clone()
             }
-            ColumnName::UserID => row_data.id.to_string(),
-            ColumnName::TotalMessage => row_data.total_message.to_string(),
-            ColumnName::DeletedMessage => row_data.deleted_message.to_string(),
-            ColumnName::TotalWord => row_data.total_word.to_string(),
-            ColumnName::TotalChar => row_data.total_char.to_string(),
-            ColumnName::AverageWord => row_data.average_word.to_string(),
-            ColumnName::AverageChar => row_data.average_char.to_string(),
-            ColumnName::FirstMessageSeen => row_data.first_seen.to_string(),
-            ColumnName::LastMessageSeen => row_data.last_seen.to_string(),
-            ColumnName::UniqueChannels => row_data.unique_channels.len().to_string(),
+            UserColumn::UserID => row_data.id.to_string(),
+            UserColumn::TotalMessage => row_data.total_message.to_string(),
+            UserColumn::DeletedMessage => row_data.deleted_message.to_string(),
+            UserColumn::TotalWord => row_data.total_word.to_string(),
+            UserColumn::TotalChar => row_data.total_char.to_string(),
+            UserColumn::AverageWord => row_data.average_word.to_string(),
+            UserColumn::AverageChar => row_data.average_char.to_string(),
+            UserColumn::FirstMessageSeen => row_data.first_seen.to_string(),
+            UserColumn::LastMessageSeen => row_data.last_seen.to_string(),
+            UserColumn::UniqueChannels => row_data.unique_channels.len().to_string(),
         };
         let is_selected = column_selected;
 
@@ -154,21 +154,21 @@ impl ColumnOperations<UserRowData, ColumnName, Config> for ColumnName {
     }
 }
 
-impl ColumnOrdering<UserRowData> for ColumnName {
+impl ColumnOrdering<UserRowData> for UserColumn {
     fn order_by(&self, row_1: &UserRowData, row_2: &UserRowData) -> Ordering {
         match self {
-            ColumnName::Name => row_1.name.cmp(&row_2.name),
-            ColumnName::Username => row_1.username.cmp(&row_2.username),
-            ColumnName::UserID => row_1.id.cmp(&row_2.id),
-            ColumnName::TotalMessage => row_1.total_message.cmp(&row_2.total_message),
-            ColumnName::DeletedMessage => row_1.deleted_message.cmp(&row_2.deleted_message),
-            ColumnName::TotalWord => row_1.total_word.cmp(&row_2.total_word),
-            ColumnName::TotalChar => row_1.total_char.cmp(&row_2.total_char),
-            ColumnName::AverageWord => row_1.average_word.cmp(&row_2.average_word),
-            ColumnName::AverageChar => row_1.average_char.cmp(&row_2.average_char),
-            ColumnName::FirstMessageSeen => row_1.first_seen.cmp(&row_2.first_seen),
-            ColumnName::LastMessageSeen => row_1.last_seen.cmp(&row_2.last_seen),
-            ColumnName::UniqueChannels => row_1
+            UserColumn::Name => row_1.name.cmp(&row_2.name),
+            UserColumn::Username => row_1.username.cmp(&row_2.username),
+            UserColumn::UserID => row_1.id.cmp(&row_2.id),
+            UserColumn::TotalMessage => row_1.total_message.cmp(&row_2.total_message),
+            UserColumn::DeletedMessage => row_1.deleted_message.cmp(&row_2.deleted_message),
+            UserColumn::TotalWord => row_1.total_word.cmp(&row_2.total_word),
+            UserColumn::TotalChar => row_1.total_char.cmp(&row_2.total_char),
+            UserColumn::AverageWord => row_1.average_word.cmp(&row_2.average_word),
+            UserColumn::AverageChar => row_1.average_char.cmp(&row_2.average_char),
+            UserColumn::FirstMessageSeen => row_1.first_seen.cmp(&row_2.first_seen),
+            UserColumn::LastMessageSeen => row_1.last_seen.cmp(&row_2.last_seen),
+            UserColumn::UniqueChannels => row_1
                 .unique_channels
                 .len()
                 .cmp(&row_2.unique_channels.len()),
@@ -267,7 +267,7 @@ pub struct UserTable {
     /// Value: A HashMap of the founded User with their user id as the key
     /// Contains all data points and UI points are recreated from here
     user_data: HashMap<NaiveDate, HashMap<i64, UserRowData>>,
-    table: SelectableTable<UserRowData, ColumnName, Config>,
+    table: SelectableTable<UserRowData, UserColumn, Config>,
     /// Read only currently selected dates in the UI
     date_handler: DateHandler,
     total_message: u32,
@@ -277,7 +277,7 @@ pub struct UserTable {
 
 impl Default for UserTable {
     fn default() -> Self {
-        let table = SelectableTable::new(ColumnName::iter().collect())
+        let table = SelectableTable::new(UserColumn::iter().collect())
             .auto_scroll()
             .serial_column();
         Self {
@@ -321,7 +321,7 @@ impl ShowUI for UserTable {
                 .auto_shrink([false; 2])
                 .min_scrolled_height(0.0);
 
-            for _ in ColumnName::iter() {
+            for _ in UserColumn::iter() {
                 let mut column = Column::initial(100.0);
                 if clip_added < 2 {
                     column = column.clip(true);
@@ -335,7 +335,7 @@ impl ShowUI for UserTable {
 }
 
 impl UserTable {
-    fn handle_message(&mut self, message: MessageWithUser, event_bus: &mut EventBus) {
+    fn handle_message(&mut self, message: &MessageWithUser, event_bus: &mut EventBus) {
         self.reload_count += 1;
         let username = &message.sender.username;
         let global_name = if let Some(name) = &message.sender.global_name {
@@ -385,7 +385,7 @@ impl UserTable {
         }
 
         if !deleted_message {
-            let message_text = message.message.message_content.unwrap_or_default();
+            let message_text = message.message.message_content.clone().unwrap_or_default();
 
             let total_char = message_text.len() as u32;
             let total_word = message_text.split_whitespace().count() as u32;
@@ -400,7 +400,7 @@ impl UserTable {
         user_row_data.add_channel(channel_id);
 
         if self.reload_count == PAGE_VALUE * 5 {
-            event_bus.publish_if_needed(AppEvent::TableNeedsReload(guild_id));
+            event_bus.publish_if_needed(AppEvent::UserTableNeedsReload(guild_id));
         }
     }
 
@@ -469,13 +469,13 @@ impl UserTable {
 }
 
 impl TabHandler {
-    pub fn recreate_rows(&mut self, guild_id: i64) {
+    pub fn user_table_recreate_rows(&mut self, guild_id: i64) {
         self.user_table.get_mut(&guild_id).unwrap().create_rows();
     }
 
     pub fn handle_message_user_table(
         &mut self,
-        message: MessageWithUser,
+        message: &MessageWithUser,
         event_bus: &mut EventBus,
     ) {
         let guild_id = message.message.guild_id;
