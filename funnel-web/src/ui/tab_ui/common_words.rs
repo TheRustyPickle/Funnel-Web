@@ -221,13 +221,14 @@ impl WordTable {
         self.table.clear_all_rows();
 
         let mut row_map: HashMap<String, WordRowData> = HashMap::new();
-        for (date, split_content) in &self.stripped_contents {
+        for (date, stripped_content) in &self.stripped_contents {
             if !self.date_handler.within_range(*date) {
                 continue;
             }
 
-            for content in split_content {
-                let split_stripped_content: Vec<&str> = content.split(" ").collect();
+            for content in stripped_content {
+                let split_stripped_content: Vec<&str> =
+                    content.split(" ").filter(|s| !s.is_empty()).collect();
                 if split_stripped_content.len() < self.window_size {
                     continue;
                 }
