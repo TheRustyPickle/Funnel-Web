@@ -1,7 +1,7 @@
 use eframe::egui::ahash::HashMap;
 use eframe::egui::Ui;
 
-use crate::ui::{ChannelTable, DateHandler, Overview, UserTable};
+use crate::ui::{ChannelTable, DateHandler, Overview, UserTable, WordTable};
 use crate::{EventBus, TabState};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -9,6 +9,7 @@ pub enum ReloadTab {
     Overview,
     UserTable,
     ChannelTable,
+    WordTable,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -23,6 +24,7 @@ pub struct TabHandler {
     pub overview: HashMap<i64, Overview>,
     pub user_table: HashMap<i64, UserTable>,
     pub channel_table: HashMap<i64, ChannelTable>,
+    pub word_table: HashMap<i64, WordTable>,
     pub pending_reloads: Vec<PendingReload>,
 }
 
@@ -55,6 +57,11 @@ impl TabHandler {
                     .get_mut(&self.current_guild)
                     .map(|u| u as &mut dyn ShowUI),
             ),
+            TabState::CommonWords => show_ui(
+                self.word_table
+                    .get_mut(&self.current_guild)
+                    .map(|u| u as &mut dyn ShowUI),
+            ),
             _ => {
                 ui.vertical_centered(|ui| {
                     ui.heading("Under Construction");
@@ -81,6 +88,7 @@ impl TabHandler {
         self.overview.insert(id, Overview::default());
         self.user_table.insert(id, UserTable::default());
         self.channel_table.insert(id, ChannelTable::default());
+        self.word_table.insert(id, WordTable::default());
     }
 
     pub fn set_current_guild(&mut self, id: i64) {
@@ -97,6 +105,10 @@ impl TabHandler {
             .unwrap()
             .set_date_handler(handler);
         self.channel_table
+            .get_mut(&guild_id)
+            .unwrap()
+            .set_date_handler(handler);
+        self.word_table
             .get_mut(&guild_id)
             .unwrap()
             .set_date_handler(handler);
@@ -125,6 +137,13 @@ impl TabHandler {
                 ReloadTab::ChannelTable => {
                     if TabState::ChannelTable == *state {
                         self.channel_table_recreate_rows(pending_reload.guild_id);
+                        to_remove_indices.push(index);
+                    }
+                }
+
+                ReloadTab::WordTable => {
+                    if TabState::CommonWords == *state {
+                        self.word_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }

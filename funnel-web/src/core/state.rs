@@ -51,9 +51,10 @@ pub enum AppEvent {
     CompareDate,
     StartWebsocket,
     UpdateDate(NaiveDate, i64),
+    OverviewNeedsReload(i64),
     UserTableNeedsReload(i64),
     ChannelTableNeedsReload(i64),
-    OverviewNeedsReload(i64),
+    WordTableNeedsReload(i64),
     CellsCopied,
     GuildChanged,
     StopCompareOverview,
@@ -125,6 +126,13 @@ pub enum ChannelColumn {
     LastMessage,
     #[strum(to_string = "Unique Users")]
     UniqueUsers,
+}
+
+#[derive(EnumIter, Display, Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default, Copy)]
+pub enum WordColumn {
+    #[default]
+    Phrase,
+    Hits,
 }
 
 #[derive(Default, Copy, Clone, Eq, PartialEq, Display, EnumIter)]

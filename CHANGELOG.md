@@ -2,6 +2,7 @@
 
 ## 01.2025
 
+* Add functionality to Common Words tab
 * Add Channel Table tab with table for channels
 * Reduce total iterations required to build the Overview chart
 * Add deleted message and unique channel count on User Table tab

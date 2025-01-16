@@ -1,3 +1,4 @@
+mod common_words;
 mod channel_table;
 mod handler;
 mod overview;
@@ -7,3 +8,4 @@ pub use channel_table::*;
 pub use handler::*;
 pub use overview::*;
 pub use user_table::*;
+pub use common_words::*;

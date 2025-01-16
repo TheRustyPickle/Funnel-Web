@@ -39,7 +39,7 @@ A work-in-progress platform for visualizing Discord analytics, built with Rust a
 - [x] **Channel Table**: Provides message statistics for each channel.
 - [ ] **Message Chart**: Visualizes total and deleted messages. Allows adding individual users for detailed analysis over daily, hourly, weekly, and monthly intervals.
 - [ ] **User Activity Chart**: Shows active user counts over different timeframes (daily, hourly, weekly, monthly).
-- [ ] **Common Words Analysis**: Highlights the most common words or phrases used in messages.
+- [x] **Common Words Analysis**: Highlights the most common words or phrases used in messages.
 - [ ] **Channel Filter**: Allow filtering all analytics by the selected channels
 
 ## Contributing

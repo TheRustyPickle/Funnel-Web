@@ -213,3 +213,23 @@ pub fn get_change_log() -> Vec<ChangeLog> {
 
     change_logs
 }
+
+pub fn get_stripped_windows(content: Vec<&str>, window_size: usize) -> Vec<String> {
+    let mut valid_windows = Vec::new();
+
+    for window in content.windows(window_size) {
+        let mut not_enough_words = false;
+        for word in window {
+            if word.is_empty() {
+                not_enough_words = true;
+                break;
+            }
+        }
+        if not_enough_words {
+            continue;
+        }
+        let joined_string = window.join(" ");
+        valid_windows.push(joined_string);
+    }
+    valid_windows
+}

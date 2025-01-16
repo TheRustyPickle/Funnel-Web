@@ -278,10 +278,10 @@ impl ChannelTable {
         let local_time = datetime.with_timezone(&Local).naive_local();
         let local_date = local_time.date();
 
-        let user_row = ChannelRowData::new(name, channel_id, local_time);
+        let channel_row = ChannelRowData::new(name, channel_id, local_time);
 
         let entry = self.channel_data.entry(local_date).or_default();
-        entry.entry(channel_id).or_insert(user_row);
+        entry.entry(channel_id).or_insert(channel_row);
 
         let target_data = self.channel_data.get_mut(&local_date).unwrap();
         let user_row_data = target_data.get_mut(&channel_id).unwrap();

@@ -46,6 +46,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
+                window
+                    .event_bus
+                    .publish_if_needed(AppEvent::WordTableNeedsReload(guild_id));
                 return None;
             }
 
@@ -65,6 +68,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 window
                     .tabs
                     .handle_message_overview(&message, &mut window.event_bus);
+                window
+                    .tabs
+                    .handle_message_word_table(&message, &mut window.event_bus);
             }
 
             if !do_new_page {
@@ -77,6 +83,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
+                window
+                    .event_bus
+                    .publish_if_needed(AppEvent::WordTableNeedsReload(guild_id));
             }
         }
         Response::MemberCounts { guild_id, counts } => {

@@ -26,6 +26,10 @@ impl MainWindow {
                         .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
                     self.event_bus
                         .publish_if_needed(AppEvent::UserTableNeedsReload(guild_id));
+                    self.event_bus
+                        .publish_if_needed(AppEvent::ChannelTableNeedsReload(guild_id));
+                    self.event_bus
+                        .publish_if_needed(AppEvent::WordTableNeedsReload(guild_id));
                 }
                 AppEvent::CompareDate => {
                     let guild_id = self.panels.selected_guild();
@@ -61,14 +65,17 @@ impl MainWindow {
                     let guild_id = self.panels.selected_guild();
                     self.tabs.stop_compare_overview(guild_id)
                 }
-                AppEvent::UserTableNeedsReload(guild_id) => {
-                    self.tabs.add_reload(guild_id, ReloadTab::UserTable);
-                }
                 AppEvent::OverviewNeedsReload(guild_id) => {
                     self.tabs.add_reload(guild_id, ReloadTab::Overview);
                 }
+                AppEvent::UserTableNeedsReload(guild_id) => {
+                    self.tabs.add_reload(guild_id, ReloadTab::UserTable);
+                }
                 AppEvent::ChannelTableNeedsReload(guild_id) => {
                     self.tabs.add_reload(guild_id, ReloadTab::ChannelTable);
+                }
+                AppEvent::WordTableNeedsReload(guild_id) => {
+                    self.tabs.add_reload(guild_id, ReloadTab::WordTable);
                 }
             }
         }
