@@ -67,9 +67,12 @@ impl ColumnOperations<WordRowData, WordColumn, Config> for WordColumn {
         table: &mut SelectableTable<WordRowData, WordColumn, Config>,
     ) -> Response {
         let row_data = &row.row_data;
-        let show_tooltip = false;
+        let mut show_tooltip = false;
         let row_text = match self {
-            WordColumn::Phrase => row_data.phrase.to_string(),
+            WordColumn::Phrase => {
+                show_tooltip = true;
+                row_data.phrase.to_string()
+            }
             WordColumn::Hits => row_data.hits.to_string(),
         };
         let is_selected = column_selected;
@@ -115,10 +118,6 @@ impl WordRowData {
     fn increase_hits(&mut self) {
         self.hits += 1;
     }
-
-    fn increase_hits_by(&mut self, amount: u32) {
-        self.hits += amount;
-    }
 }
 
 pub struct WordTable {
@@ -135,6 +134,7 @@ impl Default for WordTable {
         let table = SelectableTable::new(WordColumn::iter().collect())
             .auto_scroll()
             .select_full_row()
+            .horizontal_scroll()
             .serial_column();
         Self {
             table,
@@ -168,21 +168,18 @@ impl ShowUI for WordTable {
                 .on_hover_cursor(CursorIcon::Help)
         });
         ui.add_space(5.0);
-        let column_size = (ui.available_width() - 20.0) / 2.0;
 
         self.table.show_ui(ui, |builder| {
-            let mut table = builder
+            let table = builder
                 .striped(true)
                 .resizable(true)
                 .cell_layout(Layout::left_to_right(Align::Center))
                 .drag_to_scroll(false)
+                .column(Column::initial(500.0).clip(true))
+                .column(Column::initial(150.0))
                 .auto_shrink([false; 2])
                 .min_scrolled_height(0.0);
 
-            for _ in WordColumn::iter() {
-                let column = Column::exact(column_size);
-                table = table.column(column);
-            }
             table
         });
     }
