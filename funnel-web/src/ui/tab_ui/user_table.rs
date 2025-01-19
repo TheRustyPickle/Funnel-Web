@@ -279,6 +279,7 @@ impl Default for UserTable {
     fn default() -> Self {
         let table = SelectableTable::new(UserColumn::iter().collect())
             .auto_scroll()
+            .horizontal_scroll()
             .serial_column();
         Self {
             user_data: HashMap::new(),

@@ -111,6 +111,7 @@ impl ColumnOperations<ChannelRowData, ChannelColumn, Config> for ChannelColumn {
         if show_tooltip {
             label = label.on_hover_text(row_text);
         };
+
         label.context_menu(|ui| {
             if ui.button("Copy selected rows").clicked() {
                 table.config.copy_selected = true;
@@ -210,6 +211,7 @@ impl Default for ChannelTable {
     fn default() -> Self {
         let table = SelectableTable::new(ChannelColumn::iter().collect())
             .auto_scroll()
+            .horizontal_scroll()
             .serial_column();
         Self {
             channel_data: HashMap::new(),
