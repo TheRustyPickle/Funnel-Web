@@ -135,11 +135,9 @@ pub fn to_semi_header(text: impl Display) -> RichText {
 pub fn add_font(ctx: &Context) {
     let name = "jetbrains";
     let font = JET;
-    let font_caska = Arc::new(FontData::from_owned(font.into()));
+    let font_jet = Arc::new(FontData::from_owned(font.into()));
     let mut font_definitions = FontDefinitions::default();
-    font_definitions
-        .font_data
-        .insert(name.to_owned(), font_caska);
+    font_definitions.font_data.insert(name.to_owned(), font_jet);
 
     font_definitions
         .families
@@ -219,16 +217,26 @@ pub fn get_stripped_windows(content: Vec<&str>, window_size: usize) -> Vec<Strin
 
     for window in content.windows(window_size) {
         let mut not_enough_words = false;
+        let mut new_words = Vec::new();
         for word in window {
             if word.is_empty() {
                 not_enough_words = true;
                 break;
             }
+
+            let w = word.trim_end_matches(['.', ',', '?', '!']).to_string();
+
+            if w.is_empty() {
+                not_enough_words = true;
+                break;
+            }
+
+            new_words.push(w);
         }
         if not_enough_words {
             continue;
         }
-        let joined_string = window.join(" ");
+        let joined_string = new_words.join(" ");
         valid_windows.push(joined_string);
     }
     valid_windows
