@@ -135,11 +135,9 @@ pub fn to_semi_header(text: impl Display) -> RichText {
 pub fn add_font(ctx: &Context) {
     let name = "jetbrains";
     let font = JET;
-    let font_caska = Arc::new(FontData::from_owned(font.into()));
+    let font_jet = Arc::new(FontData::from_owned(font.into()));
     let mut font_definitions = FontDefinitions::default();
-    font_definitions
-        .font_data
-        .insert(name.to_owned(), font_caska);
+    font_definitions.font_data.insert(name.to_owned(), font_jet);
 
     font_definitions
         .families
