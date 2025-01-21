@@ -48,6 +48,12 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                     .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
                 window
                     .event_bus
+                    .publish_if_needed(AppEvent::MessageChartNeedsReload(guild_id));
+                // window
+                //     .event_bus
+                //     .publish_if_needed(AppEvent::UserChartNeedsReload(guild_id));
+                window
+                    .event_bus
                     .publish_if_needed(AppEvent::WordTableNeedsReload(guild_id));
                 return None;
             }
@@ -70,10 +76,16 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                     .handle_message_overview(&message, &mut window.event_bus);
                 window
                     .tabs
+                    .handle_message_message_chart(&message, &mut window.event_bus);
+                window
+                    .tabs
                     .handle_message_word_table(&message, &mut window.event_bus);
             }
 
             if !do_new_page {
+                window
+                    .event_bus
+                    .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::UserTableNeedsReload(guild_id));
@@ -82,7 +94,10 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                     .publish_if_needed(AppEvent::ChannelTableNeedsReload(guild_id));
                 window
                     .event_bus
-                    .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
+                    .publish_if_needed(AppEvent::MessageChartNeedsReload(guild_id));
+                // window
+                //     .event_bus
+                //     .publish_if_needed(AppEvent::UserChartNeedsReload(guild_id));
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::WordTableNeedsReload(guild_id));

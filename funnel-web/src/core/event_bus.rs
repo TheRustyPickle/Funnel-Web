@@ -30,13 +30,17 @@ impl MainWindow {
                         .publish_if_needed(AppEvent::ChannelTableNeedsReload(guild_id));
                     self.event_bus
                         .publish_if_needed(AppEvent::WordTableNeedsReload(guild_id));
+                    // self.event_bus
+                    //     .publish_if_needed(AppEvent::MessageChartNeedsReload(guild_id));
+                    // self.event_bus
+                    //     .publish_if_needed(AppEvent::UserChartNeedsReload(guild_id));
                 }
                 AppEvent::CompareDate => {
                     let guild_id = self.panels.selected_guild();
                     self.tabs.compare_overview(guild_id);
                 }
                 AppEvent::StartWebsocket => {
-                    info!("Start connection to the websocket");
+                    info!("Starting connection to the websocket");
                     self.panels.set_app_status(AppStatus::ConnectingToWs);
                     let options = Options::default();
                     let result = ewebsock::connect(WS_URL, options);
@@ -76,6 +80,15 @@ impl MainWindow {
                 }
                 AppEvent::WordTableNeedsReload(guild_id) => {
                     self.tabs.add_reload(guild_id, ReloadTab::WordTable);
+                }
+                AppEvent::MessageChartNeedsReload(guild_id) => {
+                    self.tabs.add_reload(guild_id, ReloadTab::MessageChart);
+                }
+                AppEvent::UserChartNeedsReload(guild_id) => {
+                    todo!()
+                }
+                AppEvent::MessageChartTypeChanged(guild_id) => {
+                    self.tabs.reload_message_chart(guild_id);
                 }
             }
         }
