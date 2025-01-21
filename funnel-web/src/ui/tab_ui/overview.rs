@@ -106,7 +106,7 @@ impl Default for Overview {
 }
 
 impl ShowUI for Overview {
-    fn show_ui(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
+    fn show_ui(&mut self, ui: &mut Ui, _guild_id: i64, event_bus: &mut EventBus) {
         if !self.show_full_chart {
             self.show_compare_buttons(ui, event_bus);
             ui.vertical(|ui| {
@@ -1170,7 +1170,7 @@ impl Overview {
 
             while monthly_time > ongoing_month {
                 let to_add = ongoing_month
-                    .checked_add_signed(Duration::days(45))
+                    .checked_add_months(Months::new(1))
                     .unwrap()
                     .with_day(1)
                     .unwrap();
