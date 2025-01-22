@@ -61,6 +61,7 @@ pub enum AppEvent {
     GuildChanged,
     StopCompareOverview,
     MessageChartTypeChanged(i64),
+    UserChartTypeChanged(i64),
 }
 
 #[derive(Default, Display)]

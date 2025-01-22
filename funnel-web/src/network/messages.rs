@@ -49,9 +49,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::MessageChartNeedsReload(guild_id));
-                // window
-                //     .event_bus
-                //     .publish_if_needed(AppEvent::UserChartNeedsReload(guild_id));
+                window
+                    .event_bus
+                    .publish_if_needed(AppEvent::UserChartNeedsReload(guild_id));
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::WordTableNeedsReload(guild_id));
@@ -79,6 +79,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                     .handle_message_message_chart(&message, &mut window.event_bus);
                 window
                     .tabs
+                    .handle_message_user_chart(&message, &mut window.event_bus);
+                window
+                    .tabs
                     .handle_message_word_table(&message, &mut window.event_bus);
             }
 
@@ -95,9 +98,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::MessageChartNeedsReload(guild_id));
-                // window
-                //     .event_bus
-                //     .publish_if_needed(AppEvent::UserChartNeedsReload(guild_id));
+                window
+                    .event_bus
+                    .publish_if_needed(AppEvent::UserChartNeedsReload(guild_id));
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::WordTableNeedsReload(guild_id));

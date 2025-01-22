@@ -100,7 +100,7 @@ impl TabHandler {
         self.user_table.insert(id, UserTable::default());
         self.channel_table.insert(id, ChannelTable::default());
         self.message_chart.insert(id, MessageChart::default());
-        // self.user_chart.insert(id, UserChart::default());
+        self.user_chart.insert(id, UserChart::default());
         self.word_table.insert(id, WordTable::default());
     }
 
@@ -122,6 +122,10 @@ impl TabHandler {
             .unwrap()
             .set_date_handler(handler);
         self.message_chart
+            .get_mut(&guild_id)
+            .unwrap()
+            .set_date_handler(handler);
+        self.user_chart
             .get_mut(&guild_id)
             .unwrap()
             .set_date_handler(handler);
@@ -173,8 +177,8 @@ impl TabHandler {
                 }
                 ReloadTab::UserChart => {
                     if TabState::UserChart == *state {
+                        self.reload_user_chart(pending_reload.guild_id);
                         to_remove_indices.push(index);
-                        todo!()
                     }
                 }
             }

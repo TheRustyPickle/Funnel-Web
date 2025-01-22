@@ -85,10 +85,13 @@ impl MainWindow {
                     self.tabs.add_reload(guild_id, ReloadTab::MessageChart);
                 }
                 AppEvent::UserChartNeedsReload(guild_id) => {
-                    todo!()
+                    self.tabs.add_reload(guild_id, ReloadTab::UserChart);
                 }
                 AppEvent::MessageChartTypeChanged(guild_id) => {
                     self.tabs.reload_message_chart(guild_id);
+                }
+                AppEvent::UserChartTypeChanged(guild_id) => {
+                    self.tabs.reload_user_chart(guild_id);
                 }
             }
         }
