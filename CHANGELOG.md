@@ -2,6 +2,9 @@
 
 ## 01.2025
 
+* Add option to add other users to the chart for Message and User chart
+* Add a chart based on active user in a period on User Chart
+* Add a chart based on message activity on Message Chart
 * Add functionality to Common Words tab
 * Add Channel Table tab with table for channels
 * Reduce total iterations required to build the Overview chart

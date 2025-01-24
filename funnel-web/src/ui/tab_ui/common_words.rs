@@ -124,7 +124,6 @@ pub struct WordTable {
     table: SelectableTable<WordRowData, WordColumn, Config>,
     date_handler: DateHandler,
     reload_count: u64,
-    guild_id: i64,
     window_size: usize,
     stripped_contents: HashMap<NaiveDate, Vec<String>>,
 }
@@ -138,7 +137,6 @@ impl Default for WordTable {
             .serial_column();
         Self {
             table,
-            guild_id: 0,
             date_handler: DateHandler::default(),
             reload_count: 0,
             window_size: 1,
@@ -148,7 +146,7 @@ impl Default for WordTable {
 }
 
 impl ShowUI for WordTable {
-    fn show_ui(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
+    fn show_ui(&mut self, ui: &mut Ui, guild_id: i64, event_bus: &mut EventBus) {
         let to_copy = self.table.config.copy_selected;
         if to_copy {
             self.table.config.copy_selected = false;
@@ -158,8 +156,8 @@ impl ShowUI for WordTable {
 
         ui.horizontal(|ui| {
             ui.label("Phrase Size:");
-            if ui.add(Slider::new(&mut self.window_size, 1..=20)).changed() && self.guild_id != 0 {
-                event_bus.publish(AppEvent::WordTableNeedsReload(self.guild_id));
+            if ui.add(Slider::new(&mut self.window_size, 1..=20)).changed() {
+                event_bus.publish(AppEvent::WordTableNeedsReload(guild_id));
 
             }
             ui.separator();
@@ -194,7 +192,6 @@ impl WordTable {
         self.reload_count += 1;
 
         let guild_id = message.message.guild_id;
-        self.guild_id = guild_id;
 
         let timestamp = message.message.message_timestamp;
 

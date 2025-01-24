@@ -21,7 +21,7 @@ pub enum TabState {
     #[strum(to_string = "Message Chart")]
     MessageChart,
     #[strum(to_string = "User Chart")]
-    MemberChart,
+    UserChart,
     #[strum(to_string = "Common Words")]
     CommonWords,
 }
@@ -55,9 +55,13 @@ pub enum AppEvent {
     UserTableNeedsReload(i64),
     ChannelTableNeedsReload(i64),
     WordTableNeedsReload(i64),
+    MessageChartNeedsReload(i64),
+    UserChartNeedsReload(i64),
     CellsCopied,
     GuildChanged,
     StopCompareOverview,
+    MessageChartTypeChanged(i64),
+    UserChartTypeChanged(i64),
 }
 
 #[derive(Default, Display)]

@@ -224,7 +224,7 @@ impl Default for ChannelTable {
 }
 
 impl ShowUI for ChannelTable {
-    fn show_ui(&mut self, ui: &mut Ui, event_bus: &mut EventBus) {
+    fn show_ui(&mut self, ui: &mut Ui, _guild_id: i64, event_bus: &mut EventBus) {
         let to_copy = self.table.config.copy_selected;
         if to_copy {
             self.table.config.copy_selected = false;
