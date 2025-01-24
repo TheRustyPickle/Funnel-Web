@@ -4,7 +4,7 @@ use chrono::{
 use core::ops::RangeInclusive;
 use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
 use eframe::egui::{Button, CentralPanel, Id, Modal, ScrollArea, TopBottomPanel, Ui};
-use egui_plot::{AxisHints, GridMark, Legend, Line, Plot, PlotPoint, PlotPoints};
+use egui_plot::{AxisHints, Bar, BarChart, GridMark, Legend, Plot, PlotPoint};
 use funnel_shared::{MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
 use std::collections::BTreeMap;
@@ -30,6 +30,7 @@ pub struct UserChart {
     date_handler: DateHandler,
     reload_count: u64,
     open_modal: bool,
+    saved_bars: BTreeMap<String, Vec<Bar>>,
 }
 
 impl Default for UserChart {
@@ -57,6 +58,7 @@ impl Default for UserChart {
             date_handler: Default::default(),
             reload_count: 0,
             open_modal: false,
+            saved_bars: BTreeMap::new(),
         }
     }
 }
@@ -106,52 +108,80 @@ impl ShowUI for UserChart {
 
         let mut generated_labels = false;
 
-        let mut all_lines = Vec::new();
-        for (val_index, (val, data)) in self.chart_data.iter().enumerate() {
-            let start_index = data.get_index_of(&start_datetime).unwrap_or(0);
-            let mut index = 0.0;
+        let mut all_bars = BTreeMap::new();
 
-            let points: PlotPoints = data
-                .clone()
-                .into_iter()
-                .skip(start_index)
-                .take_while(|(date, _)| date.date() <= self.date_handler.to)
-                .filter_map(|(date, count)| {
-                    if !self.date_handler.within_range(date.date()) {
-                        return None;
-                    }
-                    let y = count as f64;
-                    let x = index;
+        if !reload_labels {
+            all_bars = self.saved_bars.clone();
+        }
 
-                    if reload_labels {
-                        if generated_labels {
-                            if let Some(target_data) = self.chart_labels.get_mut(index as usize) {
-                                target_data[val_index + 1].0 = val.to_string();
-                                target_data[val_index + 1].1 = count.to_string();
-                            }
-                        } else {
-                            let mut to_insert = Vec::new();
+        if reload_labels {
+            for (val_index, (val, data)) in self.chart_data.iter().enumerate() {
+                let start_index = data.get_index_of(&start_datetime).unwrap_or(0);
+                let mut index = 0.0;
 
-                            to_insert.push((date.to_string(), String::new()));
-
-                            for _ in 0..total_label_values {
-                                to_insert.push((String::new(), String::new()));
-                            }
-
-                            to_insert[val_index + 1].0 = val.to_string();
-                            to_insert[val_index + 1].1 = count.to_string();
-                            self.chart_labels.push(to_insert);
+                let bars: Vec<Bar> = data
+                    .clone()
+                    .into_iter()
+                    .skip(start_index)
+                    .take_while(|(date, _)| date.date() <= self.date_handler.to)
+                    .filter_map(|(date, count)| {
+                        if !self.date_handler.within_range(date.date()) {
+                            return None;
                         }
-                    }
+                        let y = count as f64;
+                        let x = index;
 
-                    index += 1.0;
-                    Some([x, y])
-                })
-                .collect();
-            let line = Line::new(points).name(val.to_string());
+                        if reload_labels {
+                            if generated_labels {
+                                if let Some(target_data) = self.chart_labels.get_mut(index as usize)
+                                {
+                                    target_data[val_index + 1].0 = val.to_string();
+                                    target_data[val_index + 1].1 = count.to_string();
+                                }
+                            } else {
+                                let mut to_insert = Vec::new();
+                                to_insert.push((date.to_string(), String::new()));
 
-            all_lines.push(line);
-            generated_labels = true;
+                                for _ in 0..total_label_values {
+                                    to_insert.push((String::new(), String::new()));
+                                }
+
+                                to_insert[val_index + 1].0 = val.to_string();
+                                to_insert[val_index + 1].1 = count.to_string();
+                                self.chart_labels.push(to_insert);
+                            }
+                        }
+
+                        index += 1.0;
+                        Some(Bar::new(x, y).name(format!("{}\n{val}", date)))
+                    })
+                    .collect();
+
+                all_bars.insert(val.to_string(), bars);
+                generated_labels = true;
+            }
+        }
+
+        if reload_labels {
+            self.saved_bars = all_bars.clone();
+        }
+
+        let mut stacked_bars = Vec::new();
+
+        if let Some(bar_data) = all_bars.remove("Active Users") {
+            let bar = BarChart::new(bar_data).width(1.0).name("Active Users");
+            stacked_bars.push(bar);
+        }
+
+        for (name, bar_data) in all_bars {
+            let current_chart = BarChart::new(bar_data).width(1.0).name(name);
+            if stacked_bars.is_empty() {
+                stacked_bars.push(current_chart);
+            } else {
+                let current_chart =
+                    current_chart.stack_on(&stacked_bars.iter().collect::<Vec<&BarChart>>());
+                stacked_bars.push(current_chart);
+            }
         }
 
         let labels = self.chart_labels.clone();
@@ -221,8 +251,8 @@ impl ShowUI for UserChart {
             .clamp_grid(true)
             .label_formatter(hover_label)
             .show(ui, |plot_ui| {
-                for line in all_lines {
-                    plot_ui.line(line);
+                for bar in stacked_bars {
+                    plot_ui.bar_chart(bar);
                 }
             });
     }
@@ -414,6 +444,7 @@ impl UserChart {
     fn reload_chart(&mut self) {
         self.reload_count = 0;
         self.chart_labels.clear();
+        self.saved_bars.clear();
 
         let target_values: HashSet<String> = self.chart_data.keys().cloned().collect();
         let mut final_data: BTreeMap<String, IndexMap<NaiveDateTime, i64>> = BTreeMap::new();
