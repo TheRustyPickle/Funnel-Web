@@ -3,7 +3,7 @@ use chrono::{
 };
 use core::ops::RangeInclusive;
 use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
-use eframe::egui::Ui;
+use eframe::egui::{Button, CentralPanel, Id, Modal, ScrollArea, TopBottomPanel, Ui};
 use egui_plot::{AxisHints, GridMark, Legend, Line, Plot, PlotPoint, PlotPoints};
 use funnel_shared::{MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
@@ -16,32 +16,35 @@ use crate::{AppEvent, ChartType, EventBus};
 pub struct UserChart {
     chart_type: ChartType,
     chart_data: BTreeMap<String, IndexMap<NaiveDateTime, i64>>,
-    chart_values: HashMap<String, bool>,
+    chart_values: BTreeMap<String, bool>,
     chart_labels: Vec<Vec<(String, String)>>,
     /// Timestamp key with value HashMap with key channel id and value as data point
-    hourly_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<i64>>>,
-    daily_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<i64>>>,
-    weekly_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<i64>>>,
-    monthly_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<i64>>>,
+    hourly_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<String>>>,
+    daily_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<String>>>,
+    weekly_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<String>>>,
+    monthly_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<String>>>,
     last_hour: Option<NaiveDateTime>,
     last_day: Option<NaiveDateTime>,
     last_week: Option<NaiveDateTime>,
     last_month: Option<NaiveDateTime>,
     date_handler: DateHandler,
     reload_count: u64,
+    open_modal: bool,
 }
 
 impl Default for UserChart {
     fn default() -> Self {
         let chart_type = ChartType::Daily;
         let mut chart_data = BTreeMap::new();
+        let mut chart_values = BTreeMap::new();
 
         chart_data.insert("Active Users".to_string(), IndexMap::default());
+        chart_values.insert("Active Users".to_string(), true);
 
         Self {
             chart_type,
             chart_data,
-            chart_values: HashMap::default(),
+            chart_values,
             chart_labels: Vec::new(),
             hourly_data: BTreeMap::default(),
             daily_data: BTreeMap::new(),
@@ -53,6 +56,7 @@ impl Default for UserChart {
             last_month: None,
             date_handler: Default::default(),
             reload_count: 0,
+            open_modal: false,
         }
     }
 }
@@ -83,8 +87,18 @@ impl ShowUI for UserChart {
                     event_bus.publish(AppEvent::UserChartTypeChanged(guild_id));
                 }
             }
+            ui.separator();
+
+            if ui.button("Customize View").clicked() {
+                self.open_modal = true;
+            }
         });
+
         ui.add_space(5.0);
+
+        if self.open_modal {
+            self.show_popup(ui);
+        }
 
         let start_datetime = self.date_handler.from.and_hms_opt(0, 0, 0).unwrap();
         let reload_labels = self.chart_labels.is_empty();
@@ -186,7 +200,12 @@ impl ShowUI for UserChart {
                 };
                 let mut hover_text = format!("{}\nY = {:.0}", date_label, val.y);
                 for data in hover_data.iter().skip(1) {
-                    hover_text.push_str(&format!("\n{}: {}", data.0, data.1));
+                    if data.0 == "Active Users" {
+                        hover_text.push_str(&format!("\n{}: {}", data.0, data.1));
+                    } else {
+                        let user_status = if data.1 == "1" { "Yes" } else { "No" };
+                        hover_text.push_str(&format!("\n{}: {user_status}", data.0));
+                    }
                 }
 
                 hover_text
@@ -194,6 +213,7 @@ impl ShowUI for UserChart {
                 format!("X = {:.0}\nY = {:.0}", val.x, val.y)
             }
         };
+
         Plot::new("user_chart")
             .legend(Legend::default().background_alpha(0.0))
             .auto_bounds([true; 2].into())
@@ -209,7 +229,55 @@ impl ShowUI for UserChart {
 }
 
 impl UserChart {
-    fn get_target_data(&mut self) -> &BTreeMap<NaiveDateTime, HashMap<i64, HashSet<i64>>> {
+    fn show_popup(&mut self, ui: &mut Ui) {
+        let response = Modal::new(Id::new("customize_view")).show(ui.ctx(), |ui| {
+            ui.set_width(300.0);
+            ui.set_height(300.0);
+            TopBottomPanel::top("customize_top_view").show_inside(ui, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.heading("Customize View");
+                });
+            });
+
+            TopBottomPanel::bottom(Id::new("customize_bottom_view")).show_inside(ui, |ui| {
+                if ui
+                    .add_sized([300.0, 12.0], Button::new("Confirm"))
+                    .clicked()
+                {
+                    self.open_modal = false;
+                }
+            });
+
+            CentralPanel::default().show_inside(ui, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    let all_keys = self.chart_values.keys().cloned().collect::<Vec<_>>();
+                    for val in all_keys {
+                        ui.horizontal(|ui| {
+                            ui.checkbox(self.chart_values.get_mut(&val).unwrap(), val);
+                            ui.allocate_space(ui.available_size());
+                        });
+                    }
+                });
+            });
+        });
+
+        if response.should_close() {
+            self.open_modal = false;
+        }
+
+        if !self.open_modal {
+            for (key, val) in self.chart_values.clone().into_iter() {
+                if val {
+                    self.chart_data.entry(key).or_default();
+                } else {
+                    self.chart_data.remove(&key);
+                }
+            }
+
+            self.reload_chart();
+        }
+    }
+    fn get_target_data(&mut self) -> &BTreeMap<NaiveDateTime, HashMap<i64, HashSet<String>>> {
         match self.chart_type {
             ChartType::Hourly => &mut self.hourly_data,
             ChartType::Daily => &mut self.daily_data,
@@ -223,7 +291,6 @@ impl UserChart {
         let guild_id = message.message.guild_id;
         let channel_id = message.message.channel_id;
         let username = message.sender.username.to_string();
-        let user_id = message.sender.user_id;
 
         let timestamp = if let Some(d) = message.message.delete_timestamp {
             d
@@ -320,22 +387,22 @@ impl UserChart {
         let hourly_entry = self.hourly_data.entry(hourly_time).or_default();
         let target_entry = hourly_entry.entry(channel_id).or_default();
 
-        target_entry.insert(user_id);
+        target_entry.insert(username.clone());
 
         let daily_entry = self.daily_data.entry(daily_time).or_default();
         let target_entry = daily_entry.entry(channel_id).or_default();
 
-        target_entry.insert(user_id);
+        target_entry.insert(username.clone());
 
         let weekly_entry = self.weekly_data.entry(weekly_time).or_default();
         let target_entry = weekly_entry.entry(channel_id).or_default();
 
-        target_entry.insert(user_id);
+        target_entry.insert(username.clone());
 
         let monthly_entry = self.monthly_data.entry(monthly_time).or_default();
         let target_entry = monthly_entry.entry(channel_id).or_default();
 
-        target_entry.insert(user_id);
+        target_entry.insert(username.clone());
 
         self.chart_values.entry(username).or_default();
 
@@ -358,19 +425,25 @@ impl UserChart {
             let mut total_users: i64 = 0;
             let mut other_users: HashMap<String, i64> = HashMap::new();
 
-            for (_channel, user_ids) in data {
+            for val in target_values.iter() {
+                if val == "Active Users" {
+                    continue;
+                }
+                other_users.insert(val.to_string(), 0);
+            }
+
+            for (_channel, usernames) in data {
                 // TODO: Filter out channels here
 
-                total_users += user_ids.len() as i64;
+                total_users += usernames.len() as i64;
 
-                let data: HashMap<String, i64> = user_ids
-                    .iter()
-                    .filter(|v| target_values.contains(&v.to_string()))
-                    .map(|num| (num.to_string(), 1))
-                    .collect();
-
-                other_users.extend(data);
+                for name in usernames.iter() {
+                    if target_values.contains(name) {
+                        *other_users.get_mut(name).unwrap() = 1;
+                    }
+                }
             }
+
             if do_active_users {
                 final_data
                     .entry("Active Users".to_string())

@@ -5,7 +5,7 @@ use chrono::{
     DateTime, Datelike, Duration, Local, Months, NaiveDate, NaiveDateTime, Timelike, Weekday,
 };
 use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
-use eframe::egui::Ui;
+use eframe::egui::{Button, CentralPanel, Id, Modal, ScrollArea, TopBottomPanel, Ui};
 use egui_plot::{AxisHints, GridMark, Legend, Line, Plot, PlotPoint, PlotPoints};
 use funnel_shared::{MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
@@ -24,7 +24,7 @@ struct ChartPointData {
 pub struct MessageChart {
     chart_type: ChartType,
     chart_data: BTreeMap<String, IndexMap<NaiveDateTime, i64>>,
-    chart_values: HashMap<String, bool>,
+    chart_values: BTreeMap<String, bool>,
     chart_labels: Vec<Vec<(String, String)>>,
     /// Timestamp key with value HashMap with key channel id and value as data point
     hourly_data: BTreeMap<NaiveDateTime, HashMap<i64, Vec<ChartPointData>>>,
@@ -37,20 +37,25 @@ pub struct MessageChart {
     last_month: Option<NaiveDateTime>,
     date_handler: DateHandler,
     reload_count: u64,
+    open_modal: bool,
 }
 
 impl Default for MessageChart {
     fn default() -> Self {
         let chart_type = ChartType::Daily;
         let mut chart_data = BTreeMap::new();
+        let mut chart_values = BTreeMap::new();
 
         chart_data.insert("All Messages".to_string(), IndexMap::default());
         chart_data.insert("Deleted Messages".to_string(), IndexMap::default());
 
+        chart_values.insert("All Messages".to_string(), true);
+        chart_values.insert("Deleted Messages".to_string(), true);
+
         Self {
             chart_type,
             chart_data,
-            chart_values: HashMap::default(),
+            chart_values,
             chart_labels: Vec::new(),
             hourly_data: BTreeMap::default(),
             daily_data: BTreeMap::new(),
@@ -62,6 +67,7 @@ impl Default for MessageChart {
             last_month: None,
             date_handler: Default::default(),
             reload_count: 0,
+            open_modal: false,
         }
     }
 }
@@ -92,8 +98,18 @@ impl ShowUI for MessageChart {
                     event_bus.publish(AppEvent::MessageChartTypeChanged(guild_id));
                 }
             }
+            ui.separator();
+
+            if ui.button("Customize View").clicked() {
+                self.open_modal = true;
+            }
         });
+
         ui.add_space(5.0);
+
+        if self.open_modal {
+            self.show_popup(ui);
+        }
 
         let start_datetime = self.date_handler.from.and_hms_opt(0, 0, 0).unwrap();
         let reload_labels = self.chart_labels.is_empty();
@@ -218,6 +234,55 @@ impl ShowUI for MessageChart {
 }
 
 impl MessageChart {
+    fn show_popup(&mut self, ui: &mut Ui) {
+        let response = Modal::new(Id::new("customize_view")).show(ui.ctx(), |ui| {
+            ui.set_width(300.0);
+            ui.set_height(300.0);
+            TopBottomPanel::top("customize_top_view").show_inside(ui, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.heading("Customize View");
+                });
+            });
+
+            TopBottomPanel::bottom(Id::new("customize_bottom_view")).show_inside(ui, |ui| {
+                if ui
+                    .add_sized([300.0, 12.0], Button::new("Confirm"))
+                    .clicked()
+                {
+                    self.open_modal = false;
+                }
+            });
+
+            CentralPanel::default().show_inside(ui, |ui| {
+                ScrollArea::vertical().show(ui, |ui| {
+                    let all_keys = self.chart_values.keys().cloned().collect::<Vec<_>>();
+                    for val in all_keys {
+                        ui.horizontal(|ui| {
+                            ui.checkbox(self.chart_values.get_mut(&val).unwrap(), val);
+                            ui.allocate_space(ui.available_size());
+                        });
+                    }
+                });
+            });
+        });
+
+        if response.should_close() {
+            self.open_modal = false;
+        }
+
+        if !self.open_modal {
+            for (key, val) in self.chart_values.clone().into_iter() {
+                if val {
+                    self.chart_data.entry(key).or_default();
+                } else {
+                    self.chart_data.remove(&key);
+                }
+            }
+
+            self.reload_chart();
+        }
+    }
+
     fn get_target_data(&mut self) -> &BTreeMap<NaiveDateTime, HashMap<i64, Vec<ChartPointData>>> {
         match self.chart_type {
             ChartType::Hourly => &mut self.hourly_data,
@@ -462,6 +527,13 @@ impl MessageChart {
             let mut deleted_message: i64 = 0;
             let mut other_messages: HashMap<String, u32> = HashMap::new();
 
+            for val in target_values.iter() {
+                if val == "All Messages" || val == "Deleted Messages" {
+                    continue;
+                }
+                other_messages.insert(val.to_string(), 0);
+            }
+
             for (_channel, points) in data {
                 // TODO: Filter out channels here
 
@@ -473,7 +545,7 @@ impl MessageChart {
                     }
 
                     if target_values.contains(&point.user) {
-                        *other_messages.entry(point.user.clone()).or_default() += point.count;
+                        *other_messages.get_mut(&point.user).unwrap() += point.count;
                     }
                 }
             }
@@ -492,10 +564,8 @@ impl MessageChart {
             }
 
             for (user, count) in other_messages {
-                final_data
-                    .entry(user)
-                    .or_default()
-                    .insert(*date, count as i64);
+                let entry = final_data.entry(user).or_default();
+                entry.insert(*date, count as i64);
             }
         }
         self.chart_data = final_data;
