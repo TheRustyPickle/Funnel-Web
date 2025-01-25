@@ -31,9 +31,7 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                     .set_channel_table_channel_map(guild.guild.guild_id, guild.channels.clone());
             }
             window.panels.set_guild_channels(guilds);
-            window
-                .tabs
-                .set_current_guild(window.panels.selected_guild());
+            window.event_bus.publish(AppEvent::GuildChanged);
         }
         Response::Messages { guild_id, messages } => {
             if messages.is_empty() {

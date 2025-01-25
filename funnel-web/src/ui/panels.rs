@@ -5,7 +5,7 @@ use eframe::egui::{
     SidePanel, Spinner, TopBottomPanel, Visuals,
 };
 use egui_theme_lerp::ThemeAnimator;
-use funnel_shared::GuildWithChannels;
+use funnel_shared::{Channel, GuildWithChannels};
 use strum::IntoEnumIterator;
 
 use crate::core::{MainWindow, TabState};
@@ -218,7 +218,7 @@ impl PanelStatus {
             });
     }
 
-    fn show_right_bar(&mut self, ctx: &Context) {
+    fn show_right_bar(&mut self, ctx: &Context, event_bus: &mut EventBus) {
         SidePanel::right("right_panel")
             .default_width(120.0)
             .max_width(200.0)
@@ -256,7 +256,7 @@ impl PanelStatus {
                                     false
                                 };
 
-                                // The id where value of the current hover psotion is saved
+                                // The id where value of the current hover position is saved
                                 let hover_position = ui.make_persistent_id("channel_hover_anim");
 
                                 for (index, channel_name) in channel_name_list.iter().enumerate() {
@@ -305,7 +305,14 @@ impl PanelStatus {
                                         if index != 0 {
                                             self.selected_channel[self.selected_guild].remove(&0);
                                         } else if index == 0 {
+                                            let insert_zero_again = self.selected_channel
+                                                [self.selected_guild]
+                                                .contains(&0);
                                             self.selected_channel[self.selected_guild].clear();
+                                            if insert_zero_again {
+                                                self.selected_channel[self.selected_guild]
+                                                    .insert(0);
+                                            }
                                         }
 
                                         let already_selected = self.selected_channel
@@ -341,6 +348,7 @@ impl PanelStatus {
                                                 );
                                             }
                                         }
+                                        event_bus.publish(AppEvent::SelectedChannelsChanged)
                                     }
                                 }
                             },
@@ -425,6 +433,14 @@ impl PanelStatus {
             .unwrap();
         self.date_nav[target_index].handler_i()
     }
+
+    pub fn current_selected_channels(&self) -> HashSet<usize> {
+        self.selected_channel[self.selected_guild].clone()
+    }
+
+    pub fn current_guild_channels(&self) -> Vec<Channel> {
+        self.guild_channels[self.selected_guild].channels.clone()
+    }
 }
 
 impl MainWindow {
@@ -432,7 +448,7 @@ impl MainWindow {
         self.panels
             .show_upper_bar(ctx, self.connection.connected(), &mut self.event_bus);
         self.panels.show_left_bar(ctx, &mut self.event_bus);
-        self.panels.show_right_bar(ctx);
+        self.panels.show_right_bar(ctx, &mut self.event_bus);
         self.panels.show_bottom_bar(ctx);
 
         if self.connection.connected() {

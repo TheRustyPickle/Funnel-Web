@@ -7,7 +7,7 @@ use chrono::{
 use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
 use eframe::egui::{Button, CentralPanel, Id, Modal, ScrollArea, TopBottomPanel, Ui};
 use egui_plot::{AxisHints, GridMark, Legend, Line, Plot, PlotPoint, PlotPoints};
-use funnel_shared::{MessageWithUser, PAGE_VALUE};
+use funnel_shared::{Channel, MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
 use strum::IntoEnumIterator;
 
@@ -38,6 +38,8 @@ pub struct MessageChart {
     date_handler: DateHandler,
     reload_count: u64,
     open_modal: bool,
+    channels: Vec<Channel>,
+    selected_channels: HashSet<usize>,
 }
 
 impl Default for MessageChart {
@@ -68,6 +70,8 @@ impl Default for MessageChart {
             date_handler: Default::default(),
             reload_count: 0,
             open_modal: false,
+            channels: Default::default(),
+            selected_channels: Default::default(),
         }
     }
 }
@@ -515,6 +519,26 @@ impl MessageChart {
         self.reload_count = 0;
         self.chart_labels.clear();
 
+        let mut selected_channels = HashSet::default();
+
+        if self.selected_channels.is_empty() {
+            for channel in self.channels.iter() {
+                selected_channels.insert(channel.channel_id);
+            }
+        } else {
+            for index in self.selected_channels.iter() {
+                if index == &0_usize {
+                    for channel in self.channels.iter() {
+                        selected_channels.insert(channel.channel_id);
+                    }
+                    break;
+                } else {
+                    let channel_id = self.channels.get(*index - 1).unwrap().channel_id;
+                    selected_channels.insert(channel_id);
+                }
+            }
+        }
+
         let target_values: HashSet<String> = self.chart_data.keys().cloned().collect();
         let mut final_data: BTreeMap<String, IndexMap<NaiveDateTime, i64>> = BTreeMap::new();
         let chart_data = self.get_target_data();
@@ -534,18 +558,18 @@ impl MessageChart {
                 other_messages.insert(val.to_string(), 0);
             }
 
-            for (_channel, points) in data {
-                // TODO: Filter out channels here
+            for (channel, points) in data {
+                if selected_channels.contains(channel) {
+                    for point in points {
+                        if point.deleted && do_deleted_message {
+                            deleted_message += point.count as i64;
+                        } else if !point.deleted && do_total_message {
+                            total_message += point.count as i64;
+                        }
 
-                for point in points {
-                    if point.deleted && do_deleted_message {
-                        deleted_message += point.count as i64;
-                    } else if !point.deleted && do_total_message {
-                        total_message += point.count as i64;
-                    }
-
-                    if target_values.contains(&point.user) {
-                        *other_messages.get_mut(&point.user).unwrap() += point.count;
+                        if target_values.contains(&point.user) {
+                            *other_messages.get_mut(&point.user).unwrap() += point.count;
+                        }
                     }
                 }
             }
@@ -573,6 +597,13 @@ impl MessageChart {
 
     pub fn set_date_handler(&mut self, handler: DateHandler) {
         self.date_handler = handler;
+    }
+
+    pub fn set_channels(&mut self, channels: Vec<Channel>) {
+        self.channels = channels;
+    }
+    pub fn set_selected_channels(&mut self, selected: HashSet<usize>) {
+        self.selected_channels = selected;
     }
 }
 

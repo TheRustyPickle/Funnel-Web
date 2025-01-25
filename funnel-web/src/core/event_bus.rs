@@ -64,6 +64,10 @@ impl MainWindow {
                 AppEvent::CellsCopied => self.panels.set_app_status(AppStatus::CellsCopied),
                 AppEvent::GuildChanged => {
                     self.tabs.set_current_guild(self.panels.selected_guild());
+                    let guild_channels = self.panels.current_guild_channels();
+                    self.tabs.set_channels(guild_channels);
+                    let selected_channels = self.panels.current_selected_channels();
+                    self.tabs.set_selected_channels(selected_channels);
                 }
                 AppEvent::StopCompareOverview => {
                     let guild_id = self.panels.selected_guild();
@@ -92,6 +96,22 @@ impl MainWindow {
                 }
                 AppEvent::UserChartTypeChanged(guild_id) => {
                     self.tabs.reload_user_chart(guild_id);
+                }
+                AppEvent::SelectedChannelsChanged => {
+                    let current_guild = self.panels.selected_guild();
+                    let selected_channels = self.panels.current_selected_channels();
+                    self.tabs.set_selected_channels(selected_channels);
+
+                    self.event_bus
+                        .publish_if_needed(AppEvent::OverviewNeedsReload(current_guild));
+                    self.event_bus
+                        .publish_if_needed(AppEvent::UserTableNeedsReload(current_guild));
+                    self.event_bus
+                        .publish_if_needed(AppEvent::MessageChartNeedsReload(current_guild));
+                    self.event_bus
+                        .publish_if_needed(AppEvent::UserChartNeedsReload(current_guild));
+                    self.event_bus
+                        .publish_if_needed(AppEvent::WordTableNeedsReload(current_guild));
                 }
             }
         }

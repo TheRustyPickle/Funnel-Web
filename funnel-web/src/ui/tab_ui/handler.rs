@@ -1,5 +1,6 @@
-use eframe::egui::ahash::HashMap;
+use eframe::egui::ahash::{HashMap, HashSet};
 use eframe::egui::Ui;
+use funnel_shared::Channel;
 
 use crate::ui::{
     ChannelTable, DateHandler, MessageChart, Overview, UserChart, UserTable, WordTable,
@@ -129,11 +130,56 @@ impl TabHandler {
             .get_mut(&guild_id)
             .unwrap()
             .set_date_handler(handler);
-        // TODO: date handler
         self.word_table
             .get_mut(&guild_id)
             .unwrap()
             .set_date_handler(handler);
+    }
+
+    pub fn set_channels(&mut self, channels: Vec<Channel>) {
+        self.overview
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_channels(channels.clone());
+        self.user_table
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_channels(channels.clone());
+        self.message_chart
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_channels(channels.clone());
+        self.user_chart
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_channels(channels.clone());
+        self.word_table
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_channels(channels);
+    }
+
+    pub fn set_selected_channels(&mut self, selected: HashSet<usize>) {
+        self.overview
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_selected_channels(selected.clone());
+        self.user_table
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_selected_channels(selected.clone());
+        self.message_chart
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_selected_channels(selected.clone());
+        self.user_chart
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_selected_channels(selected.clone());
+        self.word_table
+            .get_mut(&self.current_guild)
+            .unwrap()
+            .set_selected_channels(selected.clone());
     }
 
     pub fn process_pending_reloads(&mut self, state: &TabState) {

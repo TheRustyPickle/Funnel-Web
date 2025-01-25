@@ -5,7 +5,7 @@ use egui_extras::Column;
 use egui_selectable_table::{
     ColumnOperations, ColumnOrdering, SelectableRow, SelectableTable, SortOrder,
 };
-use funnel_shared::{MessageWithUser, PAGE_VALUE};
+use funnel_shared::{Channel, MessageWithUser, PAGE_VALUE};
 use std::cmp::Ordering;
 use strum::IntoEnumIterator;
 
@@ -266,13 +266,15 @@ pub struct UserTable {
     /// Key: The Date where at least one message/User was found
     /// Value: A HashMap of the founded User with their user id as the key
     /// Contains all data points and UI points are recreated from here
-    user_data: HashMap<NaiveDate, HashMap<i64, UserRowData>>,
+    user_data: HashMap<NaiveDate, HashMap<i64, HashMap<i64, UserRowData>>>,
     table: SelectableTable<UserRowData, UserColumn, Config>,
     /// Read only currently selected dates in the UI
     date_handler: DateHandler,
     total_message: u32,
     deleted_message: u32,
     reload_count: u64,
+    channels: Vec<Channel>,
+    selected_channels: HashSet<usize>,
 }
 
 impl Default for UserTable {
@@ -288,6 +290,8 @@ impl Default for UserTable {
             total_message: 0,
             deleted_message: 0,
             reload_count: 0,
+            channels: Default::default(),
+            selected_channels: Default::default(),
         }
     }
 }
@@ -363,11 +367,16 @@ impl UserTable {
 
         let user_row = UserRowData::new(global_name, username, user_id, local_time);
 
-        let entry = self.user_data.entry(local_date).or_default();
+        let channel_entry = self.user_data.entry(local_date).or_default();
+        let entry = channel_entry.entry(channel_id).or_default();
         entry.entry(user_id).or_insert(user_row);
 
         let target_data = self.user_data.get_mut(&local_date).unwrap();
-        let user_row_data = target_data.get_mut(&user_id).unwrap();
+        let user_row_data = target_data
+            .get_mut(&channel_id)
+            .unwrap()
+            .get_mut(&user_id)
+            .unwrap();
 
         // Update last and first seen in this date for this user
         if user_row_data.first_seen > local_time {
@@ -417,45 +426,70 @@ impl UserTable {
         let mut deleted_message = 0;
         let mut id_map = HashMap::new();
 
+        let mut selected_channels = HashSet::default();
+
+        if self.selected_channels.is_empty() {
+            for channel in self.channels.iter() {
+                selected_channels.insert(channel.channel_id);
+            }
+        } else {
+            for index in self.selected_channels.iter() {
+                if index == &0_usize {
+                    for channel in self.channels.iter() {
+                        selected_channels.insert(channel.channel_id);
+                    }
+                    break;
+                } else {
+                    let channel_id = self.channels.get(*index - 1).unwrap().channel_id;
+                    selected_channels.insert(channel_id);
+                }
+            }
+        }
+
         // Go by all the data that are within the range and join them together
         for (date, data) in &self.user_data {
             if !self.date_handler.within_range(*date) {
                 continue;
             }
 
-            for (id, row) in data {
-                total_message += row.total_message;
-                deleted_message += row.deleted_message;
+            for (channel_id, row_data) in data {
+                if !selected_channels.contains(channel_id) {
+                    continue;
+                }
+                for (id, row) in row_data {
+                    total_message += row.total_message;
+                    deleted_message += row.deleted_message;
 
-                if let Some(row_id) = id_map.get(id) {
-                    self.table.add_modify_row(|rows| {
-                        let target_row = rows.get_mut(row_id).unwrap();
-                        let user_row_data = &mut target_row.row_data;
+                    if let Some(row_id) = id_map.get(id) {
+                        self.table.add_modify_row(|rows| {
+                            let target_row = rows.get_mut(row_id).unwrap();
+                            let user_row_data = &mut target_row.row_data;
 
-                        if user_row_data.first_seen > row.first_seen {
-                            user_row_data.set_first_seen(row.first_seen);
-                        }
+                            if user_row_data.first_seen > row.first_seen {
+                                user_row_data.set_first_seen(row.first_seen);
+                            }
 
-                        if user_row_data.last_seen < row.last_seen {
-                            user_row_data.set_last_seen(row.last_seen);
-                        }
+                            if user_row_data.last_seen < row.last_seen {
+                                user_row_data.set_last_seen(row.last_seen);
+                            }
 
-                        let total_char = row.total_char;
-                        let total_word = row.total_word;
-                        let total_message = row.total_message;
-                        let deleted_message = row.deleted_message;
-                        let channel_list = &row.unique_channels;
+                            let total_char = row.total_char;
+                            let total_word = row.total_word;
+                            let total_message = row.total_message;
+                            let deleted_message = row.deleted_message;
+                            let channel_list = &row.unique_channels;
 
-                        user_row_data.increase_message_by(total_message);
-                        user_row_data.increase_deleted_by(deleted_message);
-                        user_row_data.increment_total_word(total_word);
-                        user_row_data.increment_total_char(total_char);
-                        user_row_data.extend_channels(channel_list);
-                        None
-                    });
-                } else {
-                    let new_id = self.table.add_modify_row(|_| Some(row.clone()));
-                    id_map.insert(row.id, new_id.unwrap());
+                            user_row_data.increase_message_by(total_message);
+                            user_row_data.increase_deleted_by(deleted_message);
+                            user_row_data.increment_total_word(total_word);
+                            user_row_data.increment_total_char(total_char);
+                            user_row_data.extend_channels(channel_list);
+                            None
+                        });
+                    } else {
+                        let new_id = self.table.add_modify_row(|_| Some(row.clone()));
+                        id_map.insert(row.id, new_id.unwrap());
+                    }
                 }
             }
         }
@@ -466,6 +500,13 @@ impl UserTable {
 
     pub fn set_date_handler(&mut self, handler: DateHandler) {
         self.date_handler = handler;
+    }
+
+    pub fn set_channels(&mut self, channels: Vec<Channel>) {
+        self.channels = channels;
+    }
+    pub fn set_selected_channels(&mut self, selected: HashSet<usize>) {
+        self.selected_channels = selected;
     }
 }
 

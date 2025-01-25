@@ -62,6 +62,7 @@ pub enum AppEvent {
     StopCompareOverview,
     MessageChartTypeChanged(i64),
     UserChartTypeChanged(i64),
+    SelectedChannelsChanged,
 }
 
 #[derive(Default, Display)]

@@ -2,12 +2,11 @@ use chrono::{
     DateTime, Datelike, Duration, Local, Months, NaiveDate, NaiveDateTime, Timelike, Weekday,
 };
 use core::ops::RangeInclusive;
-use eframe::egui::ahash::{HashMap, HashMapExt};
+use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
 use eframe::egui::Ui;
 use egui_plot::{AxisHints, GridMark, Legend, Line, Plot, PlotPoint, PlotPoints};
 use funnel_shared::{Channel, MemberActivity, MemberCount, MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
-use log::info;
 use strum::IntoEnumIterator;
 
 use crate::core::to_header;
@@ -18,7 +17,7 @@ use crate::{AppEvent, CardData, CardType, ChartType, EventBus};
 pub struct ActivityData {
     // Channel ID + Message Count
     message_count: HashMap<i64, u32>,
-    deleted_message: u32,
+    deleted_message: HashMap<i64, u32>,
     name: String,
 }
 
@@ -26,7 +25,7 @@ impl ActivityData {
     fn new(name: String) -> Self {
         Self {
             message_count: HashMap::default(),
-            deleted_message: 0,
+            deleted_message: HashMap::default(),
             name,
         }
     }
@@ -74,6 +73,8 @@ pub struct Overview {
     date_handler: DateHandler,
     max_content: usize,
     reload_count: u64,
+    channels: Vec<Channel>,
+    selected_channels: HashSet<usize>,
 }
 
 impl Default for Overview {
@@ -101,6 +102,8 @@ impl Default for Overview {
             date_handler: Default::default(),
             max_content: Default::default(),
             reload_count: Default::default(),
+            channels: Default::default(),
+            selected_channels: Default::default(),
         }
     }
 }
@@ -729,11 +732,12 @@ impl Overview {
         let entry = self.activity_data.entry(local_date).or_default();
 
         let target_entry = entry.entry(username.to_string()).or_insert(activity);
-        let count_entry = target_entry.message_count.entry(channel_id).or_default();
 
         if deleted_message {
-            target_entry.deleted_message += 1;
+            let deleted_entry = target_entry.deleted_message.entry(channel_id).or_default();
+            *deleted_entry += 1;
         } else {
+            let count_entry = target_entry.message_count.entry(channel_id).or_default();
             *count_entry += 1;
         }
 
@@ -747,6 +751,7 @@ impl Overview {
     fn reload_overview(&mut self) {
         self.chart_labels.clear();
 
+        let mut selected_channels = HashSet::default();
         let mut channel_message_count = HashMap::new();
         let mut member_message_count = HashMap::new();
         let mut total_message = 0;
@@ -756,19 +761,46 @@ impl Overview {
         let mut member_joins = 0;
         let mut member_leaves = 0;
 
+        if self.selected_channels.is_empty() {
+            for channel in self.channels.iter() {
+                selected_channels.insert(channel.channel_id);
+            }
+        } else {
+            for index in self.selected_channels.iter() {
+                if index == &0_usize {
+                    for channel in self.channels.iter() {
+                        selected_channels.insert(channel.channel_id);
+                    }
+                    break;
+                } else {
+                    let channel_id = self.channels.get(*index - 1).unwrap().channel_id;
+                    selected_channels.insert(channel_id);
+                }
+            }
+        }
+
         self.activity_data
             .iter()
             .filter(|(date, _)| self.date_handler.within_range(**date))
             .for_each(|(_, activities)| {
                 for activity in activities.values() {
                     for (&channel_id, &count) in &activity.message_count {
+                        if !selected_channels.contains(&channel_id) {
+                            continue;
+                        }
                         *channel_message_count.entry(channel_id).or_insert(0) += count;
                         *member_message_count
                             .entry(activity.name.clone())
                             .or_insert(0) += count;
                         total_message += count;
                     }
-                    deleted_message += activity.deleted_message;
+
+                    for (&channel_id, &count) in &activity.deleted_message {
+                        if !selected_channels.contains(&channel_id) {
+                            continue;
+                        }
+                        deleted_message += count
+                    }
                 }
             });
 
@@ -961,8 +993,6 @@ impl Overview {
             .with_year(date.year())
             .unwrap();
 
-        info!("Finding member count for date {ongoing_date}");
-
         let mut member_count = 0;
 
         let last_date = self
@@ -987,12 +1017,9 @@ impl Overview {
                 member_count = *count as u32;
                 break;
             } else {
-                info!("Didn't find on {ongoing_date}");
                 ongoing_date = ongoing_date.checked_sub_signed(Duration::days(1)).unwrap();
             }
         }
-
-        info!("Found member count: {member_count}");
 
         member_count
     }
@@ -1206,6 +1233,13 @@ impl Overview {
             self.get_joins_m().monthly.insert(data.0, 0);
             self.get_leaves_m().monthly.insert(data.0, 0);
         }
+    }
+
+    pub fn set_channels(&mut self, channels: Vec<Channel>) {
+        self.channels = channels;
+    }
+    pub fn set_selected_channels(&mut self, selected: HashSet<usize>) {
+        self.selected_channels = selected;
     }
 }
 
