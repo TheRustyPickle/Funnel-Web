@@ -1,11 +1,11 @@
 use chrono::{DateTime, Local, NaiveDate};
-use eframe::egui::ahash::{HashMap, HashMapExt};
+use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
 use eframe::egui::{Align, CursorIcon, Layout, Response, RichText, SelectableLabel, Slider, Ui};
 use egui_extras::Column;
 use egui_selectable_table::{
     ColumnOperations, ColumnOrdering, SelectableRow, SelectableTable, SortOrder,
 };
-use funnel_shared::{MessageWithUser, PAGE_VALUE};
+use funnel_shared::{Channel, MessageWithUser, PAGE_VALUE};
 use std::cmp::Ordering;
 use strum::IntoEnumIterator;
 
@@ -125,7 +125,10 @@ pub struct WordTable {
     date_handler: DateHandler,
     reload_count: u64,
     window_size: usize,
-    stripped_contents: HashMap<NaiveDate, Vec<String>>,
+    stripped_contents: HashMap<NaiveDate, HashMap<i64, Vec<String>>>,
+
+    channels: Vec<Channel>,
+    selected_channels: HashSet<usize>,
 }
 
 impl Default for WordTable {
@@ -141,6 +144,8 @@ impl Default for WordTable {
             reload_count: 0,
             window_size: 1,
             stripped_contents: HashMap::new(),
+            channels: Default::default(),
+            selected_channels: Default::default(),
         }
     }
 }
@@ -192,6 +197,7 @@ impl WordTable {
         self.reload_count += 1;
 
         let guild_id = message.message.guild_id;
+        let channel_id = message.message.channel_id;
 
         let timestamp = message.message.message_timestamp;
 
@@ -202,6 +208,8 @@ impl WordTable {
 
         self.stripped_contents
             .entry(local_date)
+            .or_default()
+            .entry(channel_id)
             .or_default()
             .push(stripped_content.clone());
 
@@ -214,26 +222,55 @@ impl WordTable {
         self.reload_count = 0;
         self.table.clear_all_rows();
 
+        log::info!("Here");
+
+        let mut selected_channels = HashSet::default();
+
+        if self.selected_channels.is_empty() {
+            for channel in self.channels.iter() {
+                selected_channels.insert(channel.channel_id);
+            }
+        } else {
+            for index in self.selected_channels.iter() {
+                if index == &0_usize {
+                    for channel in self.channels.iter() {
+                        selected_channels.insert(channel.channel_id);
+                    }
+                    break;
+                } else {
+                    let channel_id = self.channels.get(*index - 1).unwrap().channel_id;
+                    selected_channels.insert(channel_id);
+                }
+            }
+        }
+        log::info!("{:#?}", selected_channels);
         let mut row_map: HashMap<String, WordRowData> = HashMap::new();
         for (date, stripped_content) in &self.stripped_contents {
             if !self.date_handler.within_range(*date) {
                 continue;
             }
 
-            for content in stripped_content {
-                let split_stripped_content: Vec<&str> =
-                    content.split(" ").filter(|s| !s.is_empty()).collect();
-                if split_stripped_content.len() < self.window_size {
+            for (channel_id, content_list) in stripped_content {
+                if !selected_channels.contains(channel_id) {
+                    log::info!("channel_id: {} filtered", channel_id);
                     continue;
                 }
 
-                let stripped_windows =
-                    get_stripped_windows(split_stripped_content, self.window_size);
+                for content in content_list {
+                    let split_stripped_content: Vec<&str> =
+                        content.split(" ").filter(|s| !s.is_empty()).collect();
+                    if split_stripped_content.len() < self.window_size {
+                        continue;
+                    }
 
-                for phrase in stripped_windows {
-                    let word_row = WordRowData::new(phrase.clone());
-                    let entry = row_map.entry(phrase.clone()).or_insert(word_row);
-                    entry.increase_hits();
+                    let stripped_windows =
+                        get_stripped_windows(split_stripped_content, self.window_size);
+
+                    for phrase in stripped_windows {
+                        let word_row = WordRowData::new(phrase.clone());
+                        let entry = row_map.entry(phrase.clone()).or_insert(word_row);
+                        entry.increase_hits();
+                    }
                 }
             }
         }
@@ -247,6 +284,13 @@ impl WordTable {
 
     pub fn set_date_handler(&mut self, handler: DateHandler) {
         self.date_handler = handler;
+    }
+
+    pub fn set_channels(&mut self, channels: Vec<Channel>) {
+        self.channels = channels;
+    }
+    pub fn set_selected_channels(&mut self, selected: HashSet<usize>) {
+        self.selected_channels = selected;
     }
 }
 

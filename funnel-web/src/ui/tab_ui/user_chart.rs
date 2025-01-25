@@ -5,7 +5,7 @@ use core::ops::RangeInclusive;
 use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
 use eframe::egui::{Button, CentralPanel, Id, Modal, ScrollArea, TopBottomPanel, Ui};
 use egui_plot::{AxisHints, Bar, BarChart, GridMark, Legend, Plot, PlotPoint};
-use funnel_shared::{MessageWithUser, PAGE_VALUE};
+use funnel_shared::{Channel, MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
 use std::collections::BTreeMap;
 use strum::IntoEnumIterator;
@@ -31,6 +31,8 @@ pub struct UserChart {
     reload_count: u64,
     open_modal: bool,
     saved_bars: BTreeMap<String, Vec<Bar>>,
+    channels: Vec<Channel>,
+    selected_channels: HashSet<usize>,
 }
 
 impl Default for UserChart {
@@ -59,6 +61,8 @@ impl Default for UserChart {
             reload_count: 0,
             open_modal: false,
             saved_bars: BTreeMap::new(),
+            channels: Default::default(),
+            selected_channels: Default::default(),
         }
     }
 }
@@ -446,6 +450,26 @@ impl UserChart {
         self.chart_labels.clear();
         self.saved_bars.clear();
 
+        let mut selected_channels = HashSet::default();
+
+        if self.selected_channels.is_empty() {
+            for channel in self.channels.iter() {
+                selected_channels.insert(channel.channel_id);
+            }
+        } else {
+            for index in self.selected_channels.iter() {
+                if index == &0_usize {
+                    for channel in self.channels.iter() {
+                        selected_channels.insert(channel.channel_id);
+                    }
+                    break;
+                } else {
+                    let channel_id = self.channels.get(*index - 1).unwrap().channel_id;
+                    selected_channels.insert(channel_id);
+                }
+            }
+        }
+
         let target_values: HashSet<String> = self.chart_data.keys().cloned().collect();
         let mut final_data: BTreeMap<String, IndexMap<NaiveDateTime, i64>> = BTreeMap::new();
         let chart_data = self.get_target_data();
@@ -463,14 +487,14 @@ impl UserChart {
                 other_users.insert(val.to_string(), 0);
             }
 
-            for (_channel, usernames) in data {
-                // TODO: Filter out channels here
+            for (channel, usernames) in data {
+                if selected_channels.contains(channel) {
+                    total_users += usernames.len() as i64;
 
-                total_users += usernames.len() as i64;
-
-                for name in usernames.iter() {
-                    if target_values.contains(name) {
-                        *other_users.get_mut(name).unwrap() = 1;
+                    for name in usernames.iter() {
+                        if target_values.contains(name) {
+                            *other_users.get_mut(name).unwrap() = 1;
+                        }
                     }
                 }
             }
@@ -491,6 +515,13 @@ impl UserChart {
 
     pub fn set_date_handler(&mut self, handler: DateHandler) {
         self.date_handler = handler;
+    }
+
+    pub fn set_channels(&mut self, channels: Vec<Channel>) {
+        self.channels = channels;
+    }
+    pub fn set_selected_channels(&mut self, selected: HashSet<usize>) {
+        self.selected_channels = selected;
     }
 }
 

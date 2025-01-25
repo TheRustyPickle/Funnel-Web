@@ -2,6 +2,7 @@
 
 ## 01.2025
 
+* Add data filtering based on the selected channels on tabs
 * Move to bar chart for User Chart
 * Add option to add other users to the chart for Message and User chart
 * Add a chart based on active user in a period on User Chart
