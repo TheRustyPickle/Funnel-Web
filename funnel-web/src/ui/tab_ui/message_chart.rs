@@ -402,7 +402,7 @@ impl MessageChart {
         if deleted {
             target_entry.push(ChartPointData {
                 user: username.clone(),
-                count: 0,
+                count: 1,
                 deleted: true,
             });
         } else {
@@ -430,7 +430,7 @@ impl MessageChart {
         if deleted {
             target_entry.push(ChartPointData {
                 user: username.clone(),
-                count: 0,
+                count: 1,
                 deleted: true,
             });
         } else {
@@ -458,7 +458,7 @@ impl MessageChart {
         if deleted {
             target_entry.push(ChartPointData {
                 user: username.clone(),
-                count: 0,
+                count: 1,
                 deleted: true,
             });
         } else {
@@ -486,7 +486,7 @@ impl MessageChart {
         if deleted {
             target_entry.push(ChartPointData {
                 user: username.clone(),
-                count: 0,
+                count: 1,
                 deleted: true,
             });
         } else {
