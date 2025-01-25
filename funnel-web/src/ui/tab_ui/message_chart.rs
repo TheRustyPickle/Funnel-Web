@@ -408,7 +408,7 @@ impl MessageChart {
         } else {
             let mut not_found = true;
             for point in target_entry.iter_mut() {
-                if point.user == username {
+                if point.user == username && !point.deleted {
                     point.count += 1;
                     not_found = false;
                     break;
@@ -436,7 +436,7 @@ impl MessageChart {
         } else {
             let mut not_found = true;
             for point in target_entry.iter_mut() {
-                if point.user == username {
+                if point.user == username && !point.deleted {
                     point.count += 1;
                     not_found = false;
                     break;
@@ -464,7 +464,7 @@ impl MessageChart {
         } else {
             let mut not_found = true;
             for point in target_entry.iter_mut() {
-                if point.user == username {
+                if point.user == username && !point.deleted {
                     point.count += 1;
                     not_found = false;
                     break;
@@ -492,7 +492,7 @@ impl MessageChart {
         } else {
             let mut not_found = true;
             for point in target_entry.iter_mut() {
-                if point.user == username {
+                if point.user == username && !point.deleted {
                     point.count += 1;
                     not_found = false;
                     break;
