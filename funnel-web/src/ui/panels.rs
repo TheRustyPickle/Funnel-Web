@@ -1,5 +1,5 @@
 use chrono::NaiveDate;
-use eframe::egui::ahash::{HashSet, HashSetExt};
+use eframe::egui::ahash::{HashMap, HashSet, HashSetExt};
 use eframe::egui::{
     menu, Align, CentralPanel, Context, Image, ImageButton, Layout, Rounding, ScrollArea,
     SidePanel, Spinner, TopBottomPanel, Visuals,
@@ -8,7 +8,7 @@ use egui_theme_lerp::ThemeAnimator;
 use funnel_shared::{Channel, GuildWithChannels};
 use strum::IntoEnumIterator;
 
-use crate::core::{MainWindow, TabState};
+use crate::core::{FetchStatus, MainWindow, TabState};
 use crate::ui::{AnimatedLabel, AnimatedMenuLabel, DateHandler, DateNavigator};
 use crate::{AppEvent, AppStatus, EventBus};
 
@@ -27,6 +27,7 @@ pub struct PanelStatus {
     reset_guild_anim: bool,
     top_button_size: f32,
     theme_animator: ThemeAnimator,
+    fetch_status: HashMap<i64, FetchStatus>,
 }
 
 impl Default for PanelStatus {
@@ -46,6 +47,7 @@ impl Default for PanelStatus {
             reset_guild_anim: false,
             top_button_size: 0.0,
             theme_animator: ThemeAnimator::new(Visuals::light(), Visuals::dark()),
+            fetch_status: HashMap::default(),
         }
     }
 }
@@ -160,6 +162,8 @@ impl PanelStatus {
                         ui.separator();
                         ui.add_space(10.0);
 
+                        let mut nothing_hovered = true;
+
                         for (index, guild) in self.guild_channels.iter().enumerate() {
                             let guild_name = &guild.guild.guild_name;
                             let guild_image = if guild.guild.guild_icon.is_none() {
@@ -204,6 +208,7 @@ impl PanelStatus {
                                 .on_hover_text(guild_name);
 
                             if resp.hovered() {
+                                nothing_hovered = false;
                                 self.hovered_guild = Some(index);
                             }
 
@@ -212,6 +217,10 @@ impl PanelStatus {
                                 self.guild_changed = true;
                                 event_bus.publish(AppEvent::GuildChanged);
                             }
+                        }
+
+                        if nothing_hovered {
+                            self.hovered_guild = None;
                         }
                     })
                 });
@@ -396,7 +405,10 @@ impl PanelStatus {
 
     pub fn set_guild_channels(&mut self, list: Vec<GuildWithChannels>) {
         let mut date_list = vec![];
-        for _ in &list {
+        let mut fetch_status = HashMap::default();
+        for guild in &list {
+            let guild_id = guild.guild.guild_id;
+            fetch_status.insert(guild_id, FetchStatus::default());
             date_list.push(DateNavigator::default());
             self.selected_channel.push(HashSet::new());
         }
@@ -404,6 +416,7 @@ impl PanelStatus {
         self.guild_changed = true;
         self.reset_guild_anim = true;
         self.date_nav = date_list;
+        self.fetch_status = fetch_status;
     }
 
     pub fn date_update(&mut self, date: NaiveDate, guild_id: i64) -> DateHandler {
@@ -440,6 +453,14 @@ impl PanelStatus {
 
     pub fn current_guild_channels(&self) -> Vec<Channel> {
         self.guild_channels[self.selected_guild].channels.clone()
+    }
+
+    pub fn current_guild_status(&self) -> &FetchStatus {
+        &self.fetch_status[&self.selected_guild()]
+    }
+
+    pub fn current_guild_status_m(&mut self) -> &mut FetchStatus {
+        self.fetch_status.get_mut(&self.selected_guild()).unwrap()
     }
 }
 

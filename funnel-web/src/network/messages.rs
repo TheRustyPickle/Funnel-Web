@@ -16,12 +16,8 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             window.send_ws(Request::guilds());
         }
         Response::Guilds(guilds) => {
-            // TODO: Do not request stuff for all guilds. Mark one guild as selected => Get data for
-            // that only. Once a new guild is selected, fetch data for it as required
             for guild in &guilds {
                 let guild_id = guild.guild.guild_id;
-                window.send_ws(Request::get_messages(guild_id, 1));
-                window.send_ws(Request::get_member_counts(guild_id, 1));
                 window.tabs.set_data(guild_id);
                 window
                     .tabs
@@ -35,6 +31,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
         }
         Response::Messages { guild_id, messages } => {
             if messages.is_empty() {
+                window.panels.current_guild_status_m().messages_done();
+                window.to_set_idle();
+
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::UserTableNeedsReload(guild_id));
@@ -84,6 +83,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             }
 
             if !do_new_page {
+                window.panels.current_guild_status_m().messages_done();
+                window.to_set_idle();
+
                 window
                     .event_bus
                     .publish_if_needed(AppEvent::OverviewNeedsReload(guild_id));
@@ -106,6 +108,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
         }
         Response::MemberCounts { guild_id, counts } => {
             if counts.is_empty() {
+                window.panels.current_guild_status_m().counts_done();
+                window.to_set_idle();
+
                 return None;
             }
 
@@ -125,8 +130,14 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             window.tabs.clear_chart_labels(guild_id);
 
             if !do_new_page {
+                window.panels.current_guild_status_m().counts_done();
+                window.to_set_idle();
+
                 window.tabs.fill_member_activity(guild_id);
-                window.send_ws(Request::get_member_activity(guild_id, 1));
+
+                if !window.panels.current_guild_status().activities() {
+                    window.send_ws(Request::get_member_activity(guild_id, 1));
+                }
             }
         }
         Response::MemberActivities {
@@ -134,7 +145,8 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             activities,
         } => {
             if activities.is_empty() {
-                window.panels.set_app_status(AppStatus::Idle);
+                window.panels.current_guild_status_m().activities_done();
+                window.to_set_idle();
                 return None;
             }
 
@@ -154,7 +166,8 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
             window.tabs.clear_chart_labels(guild_id);
 
             if !do_new_page {
-                window.panels.set_app_status(AppStatus::Idle);
+                window.panels.current_guild_status_m().activities_done();
+                window.to_set_idle();
             }
         }
         Response::Error(_) => unreachable!(),

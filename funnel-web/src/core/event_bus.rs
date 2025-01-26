@@ -30,10 +30,10 @@ impl MainWindow {
                         .publish_if_needed(AppEvent::ChannelTableNeedsReload(guild_id));
                     self.event_bus
                         .publish_if_needed(AppEvent::WordTableNeedsReload(guild_id));
-                    // self.event_bus
-                    //     .publish_if_needed(AppEvent::MessageChartNeedsReload(guild_id));
-                    // self.event_bus
-                    //     .publish_if_needed(AppEvent::UserChartNeedsReload(guild_id));
+                    self.event_bus
+                        .publish_if_needed(AppEvent::MessageChartNeedsReload(guild_id));
+                    self.event_bus
+                        .publish_if_needed(AppEvent::UserChartNeedsReload(guild_id));
                 }
                 AppEvent::CompareDate => {
                     let guild_id = self.panels.selected_guild();
@@ -63,33 +63,44 @@ impl MainWindow {
                 }
                 AppEvent::CellsCopied => self.panels.set_app_status(AppStatus::CellsCopied),
                 AppEvent::GuildChanged => {
-                    self.tabs.set_current_guild(self.panels.selected_guild());
+                    let guild_id = self.panels.selected_guild();
+                    self.tabs.set_current_guild(guild_id);
+
                     let guild_channels = self.panels.current_guild_channels();
                     self.tabs.set_channels(guild_channels);
+
                     let selected_channels = self.panels.current_selected_channels();
                     self.tabs.set_selected_channels(selected_channels);
+
+                    self.fetch_guild_data();
                 }
                 AppEvent::StopCompareOverview => {
                     let guild_id = self.panels.selected_guild();
                     self.tabs.stop_compare_overview(guild_id)
                 }
                 AppEvent::OverviewNeedsReload(guild_id) => {
-                    self.tabs.add_reload(guild_id, ReloadTab::Overview);
+                    self.tabs
+                        .add_reload(guild_id, ReloadTab::Overview(guild_id));
                 }
                 AppEvent::UserTableNeedsReload(guild_id) => {
-                    self.tabs.add_reload(guild_id, ReloadTab::UserTable);
+                    self.tabs
+                        .add_reload(guild_id, ReloadTab::UserTable(guild_id));
                 }
                 AppEvent::ChannelTableNeedsReload(guild_id) => {
-                    self.tabs.add_reload(guild_id, ReloadTab::ChannelTable);
+                    self.tabs
+                        .add_reload(guild_id, ReloadTab::ChannelTable(guild_id));
                 }
                 AppEvent::WordTableNeedsReload(guild_id) => {
-                    self.tabs.add_reload(guild_id, ReloadTab::WordTable);
+                    self.tabs
+                        .add_reload(guild_id, ReloadTab::WordTable(guild_id));
                 }
                 AppEvent::MessageChartNeedsReload(guild_id) => {
-                    self.tabs.add_reload(guild_id, ReloadTab::MessageChart);
+                    self.tabs
+                        .add_reload(guild_id, ReloadTab::MessageChart(guild_id));
                 }
                 AppEvent::UserChartNeedsReload(guild_id) => {
-                    self.tabs.add_reload(guild_id, ReloadTab::UserChart);
+                    self.tabs
+                        .add_reload(guild_id, ReloadTab::UserChart(guild_id));
                 }
                 AppEvent::MessageChartTypeChanged(guild_id) => {
                     self.tabs.reload_message_chart(guild_id);
