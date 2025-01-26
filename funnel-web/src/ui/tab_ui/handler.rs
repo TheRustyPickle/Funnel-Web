@@ -9,12 +9,12 @@ use crate::{EventBus, TabState};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub enum ReloadTab {
-    Overview,
-    UserTable,
-    ChannelTable,
-    WordTable,
-    MessageChart,
-    UserChart,
+    Overview(i64),
+    UserTable(i64),
+    ChannelTable(i64),
+    WordTable(i64),
+    MessageChart(i64),
+    UserChart(i64),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -190,39 +190,39 @@ impl TabHandler {
                 continue;
             }
             match pending_reload.reload_type {
-                ReloadTab::Overview => {
-                    if TabState::Overview == *state {
+                ReloadTab::Overview(guild_id) => {
+                    if TabState::Overview == *state && guild_id == self.current_guild {
                         self.reload_overview(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
-                ReloadTab::UserTable => {
-                    if TabState::UserTable == *state {
+                ReloadTab::UserTable(guild_id) => {
+                    if TabState::UserTable == *state && guild_id == self.current_guild {
                         self.user_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
-                ReloadTab::ChannelTable => {
-                    if TabState::ChannelTable == *state {
+                ReloadTab::ChannelTable(guild_id) => {
+                    if TabState::ChannelTable == *state && guild_id == self.current_guild {
                         self.channel_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
 
-                ReloadTab::WordTable => {
-                    if TabState::CommonWords == *state {
+                ReloadTab::WordTable(guild_id) => {
+                    if TabState::CommonWords == *state && guild_id == self.current_guild {
                         self.word_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
-                ReloadTab::MessageChart => {
-                    if TabState::MessageChart == *state {
+                ReloadTab::MessageChart(guild_id) => {
+                    if TabState::MessageChart == *state && guild_id == self.current_guild {
                         self.reload_message_chart(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
-                ReloadTab::UserChart => {
-                    if TabState::UserChart == *state {
+                ReloadTab::UserChart(guild_id) => {
+                    if TabState::UserChart == *state && guild_id == self.current_guild {
                         self.reload_user_chart(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
