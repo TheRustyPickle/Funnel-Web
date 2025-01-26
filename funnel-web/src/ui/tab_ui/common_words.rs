@@ -222,8 +222,6 @@ impl WordTable {
         self.reload_count = 0;
         self.table.clear_all_rows();
 
-        log::info!("Here");
-
         let mut selected_channels = HashSet::default();
 
         if self.selected_channels.is_empty() {
@@ -243,7 +241,7 @@ impl WordTable {
                 }
             }
         }
-        log::info!("{:#?}", selected_channels);
+
         let mut row_map: HashMap<String, WordRowData> = HashMap::new();
         for (date, stripped_content) in &self.stripped_contents {
             if !self.date_handler.within_range(*date) {
@@ -252,7 +250,6 @@ impl WordTable {
 
             for (channel_id, content_list) in stripped_content {
                 if !selected_channels.contains(channel_id) {
-                    log::info!("channel_id: {} filtered", channel_id);
                     continue;
                 }
 

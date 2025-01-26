@@ -7,7 +7,7 @@ use funnel_shared::Request;
 
 use crate::core::add_font;
 use crate::ui::{Connection, PanelStatus, TabHandler};
-use crate::EventBus;
+use crate::{AppStatus, EventBus};
 
 pub const JET: &[u8] = include_bytes!("../../../fonts/jetbrains_nerd_propo_regular.ttf");
 pub const CHANGE: &[u8] = include_bytes!("../../../CHANGELOG.md");
@@ -63,6 +63,34 @@ impl MainWindow {
     pub fn send_ws(&mut self, message: Request) {
         if let Some(sender) = self.ws_sender.as_mut() {
             sender.send(WsMessage::Text(message.to_json()));
+        }
+    }
+
+    pub fn to_set_idle(&mut self) {
+        let all_done = self.panels.current_guild_status().all_done();
+
+        if all_done {
+            self.panels.set_app_status(AppStatus::Idle);
+        }
+    }
+
+    pub fn fetch_guild_data(&mut self) {
+        let guild_id = self.panels.selected_guild();
+        let fetch_status = self.panels.current_guild_status();
+        let messages_done = fetch_status.messages();
+        let counts_done = fetch_status.counts();
+        let activities_done = fetch_status.activities();
+
+        if !messages_done {
+            self.send_ws(Request::get_messages(guild_id, 1));
+        }
+
+        if !counts_done {
+            self.send_ws(Request::get_member_counts(guild_id, 1));
+        }
+
+        if counts_done && !activities_done {
+            self.send_ws(Request::get_member_activity(guild_id, 1));
         }
     }
 }
