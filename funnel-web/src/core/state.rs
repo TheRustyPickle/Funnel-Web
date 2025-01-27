@@ -1,15 +1,6 @@
 use chrono::NaiveDate;
 use strum_macros::{Display, EnumIter};
 
-// NOTE: Overview: Show a chart with total member movement, total left movement and total joined movement
-// User Table: Already done. What other columns can be we add?
-// Channel table: Show different message data based on a channel
-// Message Chart: Show chart on total message, deleted message, alongside option to add individual
-// user. Check statbot for more inspiration
-// User chart: Show total active user chart daily hourly, weekly monthly
-// Common words: Use the filtered word list to get count for 2 or more words combinations. Allow
-// the user to change combination list as necessary
-
 #[derive(Default, Eq, PartialEq, Display, EnumIter, Clone, Copy)]
 pub enum TabState {
     #[default]
@@ -77,12 +68,14 @@ pub enum AppStatus {
     Fetching,
     #[strum(to_string = "Copied selected cells to clipboard")]
     CellsCopied,
+    #[strum(to_string = "Waiting to login to discord..")]
+    LoggingIn,
 }
 
 impl AppStatus {
     pub fn show_spinner(&self) -> bool {
         match self {
-            AppStatus::ConnectingToWs | AppStatus::Fetching => true,
+            AppStatus::ConnectingToWs | AppStatus::Fetching | AppStatus::LoggingIn => true,
             AppStatus::Idle | AppStatus::FailedWs(_) | AppStatus::CellsCopied => false,
         }
     }

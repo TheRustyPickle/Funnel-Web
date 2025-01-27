@@ -1,21 +1,39 @@
+use eframe::egui::{Context, OpenUrl};
 use funnel_shared::{ErrorType, Request, Response, WsResponse, PAGE_VALUE};
 use log::{error, info};
 
 use crate::{AppEvent, AppStatus, MainWindow};
 
-pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Option<Request> {
+// const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=https%3A%2F%2Ffunnel-jyz9.shuttle.app%2Fauth%2Fredirect%2F&scope=guilds";
+const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fauth%2Fredirect%2F&scope=guilds+identify";
+
+pub fn handle_ws_message(
+    window: &mut MainWindow,
+    response: WsResponse,
+    ctx: &Context,
+) -> Option<Request> {
     if response.status.is_error() {
         handle_errors(window, response.get_error());
         return None;
     }
 
     match response.response {
-        Response::ConnectionSuccess => {
-            info!("Client successfully connected. Getting guild list");
-            window.panels.set_app_status(AppStatus::Fetching);
-            window.send_ws(Request::guilds());
+        Response::ConnectionSuccess(conn_id) => {
+            info!("Client successfully connected. Conn id: {conn_id}");
+
+            let full_url = format!("{LOGIN_URL}&state={}", conn_id);
+
+            let open_url = OpenUrl {
+                url: full_url,
+                new_tab: true,
+            };
+
+            ctx.open_url(open_url);
+            window.panels.set_app_status(AppStatus::LoggingIn);
         }
         Response::Guilds(guilds) => {
+            window.connection.set_connected();
+            window.panels.set_app_status(AppStatus::Fetching);
             for guild in &guilds {
                 let guild_id = guild.guild.guild_id;
                 window.tabs.set_data(guild_id);
@@ -170,6 +188,9 @@ pub fn handle_ws_message(window: &mut MainWindow, response: WsResponse) -> Optio
                 window.to_set_idle();
             }
         }
+        Response::UserDetails(user_details) => {
+            info!("{}", user_details.full_username());
+        }
         Response::Error(_) => unreachable!(),
     }
     None
@@ -186,6 +207,15 @@ fn handle_errors(window: &mut MainWindow, error: ErrorType) {
                     "Client did not connect properly to the server",
                 )));
         }
+        ErrorType::FailedAuthentication => {
+            error!("Failed to authenticate with Discord");
+            // TODO: show a message to the bottom
+        }
+        ErrorType::NoValidGuild => {
+            error!("No valid guild was found with this discord account");
+            //  TODO: Update status
+        }
+
         ErrorType::UnknowError(reason) => {
             error!("Unexpected error. Reason: {reason}")
             // TODO: Perhaps maintain an enum for work process => restart that

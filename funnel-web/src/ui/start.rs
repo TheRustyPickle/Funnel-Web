@@ -30,7 +30,7 @@ impl Connection {
     fn add_start_button(&self, ui: &mut Ui) -> bool {
         let mut clicked = false;
         ui.vertical_centered(|ui| {
-            let submit_button = Button::new("Start Connection").min_size(Vec2::new(150.0, 40.0));
+            let submit_button = Button::new("Login with Discord").min_size(Vec2::new(150.0, 40.0));
             if ui
                 .add_enabled(!self.connecting, submit_button)
                 .on_hover_text("Start the connection to the server")

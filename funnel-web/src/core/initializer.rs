@@ -24,7 +24,7 @@ pub struct MainWindow {
 impl App for MainWindow {
     fn update(&mut self, ctx: &Context, _: &mut Frame) {
         self.check_event();
-        self.check_ws_receiver();
+        self.check_ws_receiver(ctx);
         self.show_panels(ctx);
         ctx.request_repaint();
     }
