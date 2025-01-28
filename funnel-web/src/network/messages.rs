@@ -4,7 +4,7 @@ use log::{error, info};
 
 use crate::{AppEvent, AppStatus, MainWindow};
 
-// const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=https%3A%2F%2Ffunnel-jyz9.shuttle.app%2Fauth%2Fredirect%2F&scope=guilds";
+// const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=https%3A%2F%2Ffunnel-jyz9.shuttle.app%2Fauth%2Fredirect%2F&scope=guilds+identify";
 const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fauth%2Fredirect%2F&scope=guilds+identify";
 
 pub fn handle_ws_message(
@@ -21,6 +21,7 @@ pub fn handle_ws_message(
         Response::ConnectionSuccess(conn_id) => {
             info!("Client successfully connected. Conn id: {conn_id}");
 
+            // TODO: Maybe maintain some kind of cache instead of force login each time
             let full_url = format!("{LOGIN_URL}&state={}", conn_id);
 
             let open_url = OpenUrl {
@@ -34,6 +35,7 @@ pub fn handle_ws_message(
         Response::Guilds(guilds) => {
             window.connection.set_connected();
             window.panels.set_app_status(AppStatus::Fetching);
+
             for guild in &guilds {
                 let guild_id = guild.guild.guild_id;
                 window.tabs.set_data(guild_id);
@@ -48,6 +50,12 @@ pub fn handle_ws_message(
             window.event_bus.publish(AppEvent::GuildChanged);
         }
         Response::Messages { guild_id, messages } => {
+            let current_page = response.status.page();
+            window
+                .panels
+                .current_guild_status_m()
+                .set_messages_page(current_page);
+
             if messages.is_empty() {
                 window.panels.current_guild_status_m().messages_done();
                 window.to_set_idle();
@@ -76,7 +84,6 @@ pub fn handle_ws_message(
             let do_new_page = messages.len() as u64 == PAGE_VALUE;
 
             if do_new_page {
-                let current_page = response.status.page();
                 window.send_ws(Request::get_messages(guild_id, current_page + 1));
             }
             for message in messages {
@@ -125,6 +132,12 @@ pub fn handle_ws_message(
             }
         }
         Response::MemberCounts { guild_id, counts } => {
+            let current_page = response.status.page();
+            window
+                .panels
+                .current_guild_status_m()
+                .set_counts_page(current_page);
+
             if counts.is_empty() {
                 window.panels.current_guild_status_m().counts_done();
                 window.to_set_idle();
@@ -135,7 +148,6 @@ pub fn handle_ws_message(
             let do_new_page = counts.len() as u64 == PAGE_VALUE;
 
             if do_new_page {
-                let current_page = response.status.page();
                 window.send_ws(Request::get_member_counts(guild_id, current_page + 1));
             }
 
@@ -162,6 +174,12 @@ pub fn handle_ws_message(
             guild_id,
             activities,
         } => {
+            let current_page = response.status.page();
+            window
+                .panels
+                .current_guild_status_m()
+                .set_activities_page(current_page);
+
             if activities.is_empty() {
                 window.panels.current_guild_status_m().activities_done();
                 window.to_set_idle();
@@ -189,7 +207,7 @@ pub fn handle_ws_message(
             }
         }
         Response::UserDetails(user_details) => {
-            info!("{}", user_details.full_username());
+            window.panels.set_user_details(user_details);
         }
         Response::Error(_) => unreachable!(),
     }
@@ -201,6 +219,7 @@ fn handle_errors(window: &mut MainWindow, error: ErrorType) {
         ErrorType::ClientNotConnected => {
             error!("Client did not connect properly to the server");
             window.connection.failed_connection();
+            window.remove_channels();
             window
                 .panels
                 .set_app_status(AppStatus::FailedWs(String::from(
@@ -209,17 +228,24 @@ fn handle_errors(window: &mut MainWindow, error: ErrorType) {
         }
         ErrorType::FailedAuthentication => {
             error!("Failed to authenticate with Discord");
-            // TODO: show a message to the bottom
+            window.connection.failed_connection();
+            window.remove_channels();
+            window.panels.set_app_status(AppStatus::FailedAuth);
         }
         ErrorType::NoValidGuild => {
             error!("No valid guild was found with this discord account");
-            //  TODO: Update status
+            window.connection.failed_connection();
+            window.remove_channels();
+            window.panels.set_app_status(AppStatus::NoValidGuild);
         }
 
         ErrorType::UnknowError(reason) => {
-            error!("Unexpected error. Reason: {reason}")
-            // TODO: Perhaps maintain an enum for work process => restart that
-            // Fetch Guild => Fetch Message => ??
+            error!("Unexpected error. Reason: {reason}");
+            window.connection.failed_connection();
+            window.remove_channels();
+            window
+                .panels
+                .set_app_status(AppStatus::UnexpectedError(reason));
         }
     }
 }

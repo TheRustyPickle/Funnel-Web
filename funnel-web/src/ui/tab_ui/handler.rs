@@ -97,12 +97,12 @@ impl TabHandler {
     }
 
     pub fn set_data(&mut self, id: i64) {
-        self.overview.insert(id, Overview::default());
-        self.user_table.insert(id, UserTable::default());
-        self.channel_table.insert(id, ChannelTable::default());
-        self.message_chart.insert(id, MessageChart::default());
-        self.user_chart.insert(id, UserChart::default());
-        self.word_table.insert(id, WordTable::default());
+        self.overview.entry(id).or_default();
+        self.user_table.entry(id).or_default();
+        self.channel_table.entry(id).or_default();
+        self.message_chart.entry(id).or_default();
+        self.user_chart.entry(id).or_default();
+        self.word_table.entry(id).or_default();
     }
 
     pub fn set_current_guild(&mut self, id: i64) {
@@ -233,6 +233,27 @@ impl TabHandler {
         // Remove items in reverse order to avoid index shifting
         for &index in to_remove_indices.iter().rev() {
             self.pending_reloads.remove(index);
+        }
+    }
+
+    pub fn clear_key_data(&mut self, key: i64) {
+        if self.overview.contains_key(&key) {
+            self.overview.insert(key, Default::default());
+        }
+        if self.user_table.contains_key(&key) {
+            self.user_table.insert(key, Default::default());
+        }
+        if self.channel_table.contains_key(&key) {
+            self.channel_table.insert(key, Default::default());
+        }
+        if self.message_chart.contains_key(&key) {
+            self.message_chart.insert(key, Default::default());
+        }
+        if self.user_chart.contains_key(&key) {
+            self.user_chart.insert(key, Default::default());
+        }
+        if self.word_table.contains_key(&key) {
+            self.word_table.insert(key, Default::default());
         }
     }
 }

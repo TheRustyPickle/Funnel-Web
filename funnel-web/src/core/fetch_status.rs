@@ -3,6 +3,9 @@ pub struct FetchStatus {
     messages: bool,
     counts: bool,
     activities: bool,
+    messages_page: u64,
+    counts_page: u64,
+    activities_page: u64,
 }
 
 impl FetchStatus {
@@ -32,5 +35,33 @@ impl FetchStatus {
 
     pub fn activities(&self) -> bool {
         self.activities
+    }
+
+    pub fn set_messages_page(&mut self, page: u64) {
+        self.messages_page = page
+    }
+
+    pub fn set_counts_page(&mut self, page: u64) {
+        self.counts_page = page
+    }
+
+    pub fn set_activities_page(&mut self, page: u64) {
+        self.activities_page = page
+    }
+
+    fn partial_messages(&self) -> bool {
+        !self.messages() && self.messages_page != 0
+    }
+
+    fn partial_counts(&self) -> bool {
+        !self.counts() && self.counts_page != 0
+    }
+
+    fn partial_activities(&self) -> bool {
+        !self.activities() && self.activities_page != 0
+    }
+
+    pub fn any_partial(&self) -> bool {
+        !self.partial_messages() && !self.partial_counts() && !self.partial_activities()
     }
 }

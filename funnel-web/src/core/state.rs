@@ -70,13 +70,26 @@ pub enum AppStatus {
     CellsCopied,
     #[strum(to_string = "Waiting to login to discord..")]
     LoggingIn,
+    #[strum(
+        to_string = "This account is not in any guild with data or with manage channel permission"
+    )]
+    NoValidGuild,
+    #[strum(to_string = "Failed to authenticate Discord. Please try again")]
+    FailedAuth,
+    #[strum(to_string = "Unexpected error found. Reason: {0}")]
+    UnexpectedError(String),
 }
 
 impl AppStatus {
     pub fn show_spinner(&self) -> bool {
         match self {
             AppStatus::ConnectingToWs | AppStatus::Fetching | AppStatus::LoggingIn => true,
-            AppStatus::Idle | AppStatus::FailedWs(_) | AppStatus::CellsCopied => false,
+            AppStatus::Idle
+            | AppStatus::FailedWs(_)
+            | AppStatus::CellsCopied
+            | AppStatus::NoValidGuild
+            | AppStatus::FailedAuth
+            | AppStatus::UnexpectedError(_) => false,
         }
     }
 }
