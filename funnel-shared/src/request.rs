@@ -4,7 +4,8 @@ use serde_json::error::Error;
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Request {
     StartConnection,
-    GetAllGuilds,
+    StartConnectionNoLogin,
+    GetGuildNoLogin,
     GetMessages { guild_id: i64, page: u64 },
     GetGuildMemberCount { guild_id: i64, page: u64 },
     GetGuildMemberActivity { guild_id: i64, page: u64 },
@@ -15,8 +16,12 @@ impl Request {
         Request::StartConnection
     }
 
-    pub fn guilds() -> Self {
-        Request::GetAllGuilds
+    pub fn start_no_login() -> Self {
+        Request::StartConnectionNoLogin
+    }
+
+    pub fn guild_no_login() -> Self {
+        Request::GetGuildNoLogin
     }
 
     pub fn get_messages(guild_id: i64, page: u64) -> Self {

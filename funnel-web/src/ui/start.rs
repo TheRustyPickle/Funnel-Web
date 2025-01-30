@@ -7,9 +7,15 @@ pub struct Connection {
     connected: bool,
     connecting: bool,
     space_taken: f32,
+    button_space_taken: f32,
+    no_login: bool,
 }
 
 impl Connection {
+    pub fn no_login(&self) -> bool {
+        self.no_login
+    }
+
     pub fn connected(&self) -> bool {
         self.connected
     }
@@ -27,17 +33,41 @@ impl Connection {
         self.connecting = false;
     }
 
-    fn add_start_button(&self, ui: &mut Ui) -> bool {
+    fn add_start_button(&mut self, ui: &mut Ui) -> bool {
         let mut clicked = false;
-        ui.vertical_centered(|ui| {
-            let submit_button = Button::new("Start Connection").min_size(Vec2::new(150.0, 40.0));
+        ui.horizontal(|ui| {
+            let spacing_size = ui.available_width() - self.button_space_taken;
+            let spacing_size = ui.painter().round_to_pixel_center(spacing_size / 2.0);
+            if spacing_size > 0.0 {
+                ui.add_space(spacing_size);
+            };
+
+            let max_width = ui.available_width();
+            let submit_button = Button::new("Login with Discord").min_size(Vec2::new(150.0, 40.0));
             if ui
                 .add_enabled(!self.connecting, submit_button)
                 .on_hover_text("Start the connection to the server")
                 .clicked()
             {
+                self.no_login = false;
                 clicked = true;
             }
+
+            ui.add_space(5.0);
+
+            let submit_button =
+                Button::new("Continue Without Login").min_size(Vec2::new(150.0, 40.0));
+            if ui
+                .add_enabled(!self.connecting, submit_button)
+                .on_hover_text("Start the connection to the server without logging in. Allows viewing data of a demo Discord server.")
+                .clicked()
+            {
+                self.no_login = true;
+                clicked = true;
+            }
+
+            let consumed = max_width - ui.available_width();
+            self.button_space_taken = consumed;
         });
         clicked
     }
@@ -62,8 +92,6 @@ impl Connection {
 
             let max_width = ui.available_width();
 
-            // FIX: single line text edit text clipping not working. Wait for the next egui release
-            // and see if it gets fixed
             let text_edit = TextEdit::multiline(&mut text_edit_text)
                 .min_size(Vec2::new(300.0, 20.0))
                 .clip_text(true)
@@ -71,7 +99,7 @@ impl Connection {
 
             ui.add(text_edit);
 
-            let button = Button::new("Copy to clipboard").min_size(Vec2::new(30.0, 20.0));
+            let button = Button::new("Copy to clipboard").min_size(Vec2::new(30.0, 30.0));
             if ui
                 .add(button)
                 .on_hover_text("Copy the bot invite link to clipboard")

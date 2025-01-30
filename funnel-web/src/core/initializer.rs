@@ -4,6 +4,7 @@ use egui_extras::install_image_loaders;
 use ewebsock::WsMessage;
 use ewebsock::{WsReceiver, WsSender};
 use funnel_shared::Request;
+use log::info;
 
 use crate::core::add_font;
 use crate::ui::{Connection, PanelStatus, TabHandler};
@@ -24,7 +25,7 @@ pub struct MainWindow {
 impl App for MainWindow {
     fn update(&mut self, ctx: &Context, _: &mut Frame) {
         self.check_event();
-        self.check_ws_receiver();
+        self.check_ws_receiver(ctx);
         self.show_panels(ctx);
         ctx.request_repaint();
     }
@@ -76,21 +77,42 @@ impl MainWindow {
 
     pub fn fetch_guild_data(&mut self) {
         let guild_id = self.panels.selected_guild();
-        let fetch_status = self.panels.current_guild_status();
+        let fetch_status = self.panels.current_guild_status_m();
         let messages_done = fetch_status.messages();
         let counts_done = fetch_status.counts();
         let activities_done = fetch_status.activities();
 
+        let mut nothing_fetched = true;
+
         if !messages_done {
+            nothing_fetched = false;
             self.send_ws(Request::get_messages(guild_id, 1));
         }
 
         if !counts_done {
+            nothing_fetched = false;
             self.send_ws(Request::get_member_counts(guild_id, 1));
         }
 
         if counts_done && !activities_done {
+            nothing_fetched = false;
             self.send_ws(Request::get_member_activity(guild_id, 1));
+        }
+
+        if nothing_fetched {
+            self.panels.set_app_status(AppStatus::Idle);
+        }
+    }
+
+    pub fn reset_all(&mut self) {
+        info!("Resetting all data");
+        *self = Self {
+            connection: Connection::default(),
+            panels: PanelStatus::default(),
+            tabs: TabHandler::default(),
+            event_bus: EventBus::default(),
+            ws_sender: None,
+            ws_receiver: None,
         }
     }
 }

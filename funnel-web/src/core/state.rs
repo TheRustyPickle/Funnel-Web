@@ -1,15 +1,6 @@
 use chrono::NaiveDate;
 use strum_macros::{Display, EnumIter};
 
-// NOTE: Overview: Show a chart with total member movement, total left movement and total joined movement
-// User Table: Already done. What other columns can be we add?
-// Channel table: Show different message data based on a channel
-// Message Chart: Show chart on total message, deleted message, alongside option to add individual
-// user. Check statbot for more inspiration
-// User chart: Show total active user chart daily hourly, weekly monthly
-// Common words: Use the filtered word list to get count for 2 or more words combinations. Allow
-// the user to change combination list as necessary
-
 #[derive(Default, Eq, PartialEq, Display, EnumIter, Clone, Copy)]
 pub enum TabState {
     #[default]
@@ -63,6 +54,7 @@ pub enum AppEvent {
     MessageChartTypeChanged(i64),
     UserChartTypeChanged(i64),
     SelectedChannelsChanged,
+    LogOut,
 }
 
 #[derive(Default, Display)]
@@ -77,13 +69,31 @@ pub enum AppStatus {
     Fetching,
     #[strum(to_string = "Copied selected cells to clipboard")]
     CellsCopied,
+    #[strum(to_string = "Waiting to login to discord..")]
+    LoggingIn,
+    #[strum(
+        to_string = "This account is not in any guild with data or with manage channel permission"
+    )]
+    NoValidGuild,
+    #[strum(to_string = "Failed to authenticate Discord. Please try again")]
+    FailedAuth,
+    #[strum(to_string = "Unexpected error found. Reason: {0}")]
+    UnexpectedError(String),
+    #[strum(to_string = "Logged out of Discord")]
+    LoggedOut,
 }
 
 impl AppStatus {
     pub fn show_spinner(&self) -> bool {
         match self {
-            AppStatus::ConnectingToWs | AppStatus::Fetching => true,
-            AppStatus::Idle | AppStatus::FailedWs(_) | AppStatus::CellsCopied => false,
+            AppStatus::ConnectingToWs | AppStatus::Fetching | AppStatus::LoggingIn => true,
+            AppStatus::Idle
+            | AppStatus::FailedWs(_)
+            | AppStatus::CellsCopied
+            | AppStatus::NoValidGuild
+            | AppStatus::FailedAuth
+            | AppStatus::UnexpectedError(_)
+            | AppStatus::LoggedOut => false,
         }
     }
 }

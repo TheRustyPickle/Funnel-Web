@@ -3,12 +3,13 @@ use serde_json::Error;
 
 pub const PAGE_VALUE: u64 = 5000;
 
-use crate::{GuildWithChannels, MemberActivity, MemberCount, MessageWithUser};
+use crate::{GuildWithChannels, MemberActivity, MemberCount, MessageWithUser, UserDetails};
 
 #[derive(Serialize, Deserialize)]
 pub enum Response {
+    UserDetails(UserDetails),
     Guilds(Vec<GuildWithChannels>),
-    ConnectionSuccess,
+    ConnectionSuccess(u64),
     Messages {
         guild_id: i64,
         messages: Vec<MessageWithUser>,
@@ -54,6 +55,8 @@ impl Status {
 #[derive(Serialize, Deserialize, Clone)]
 pub enum ErrorType {
     ClientNotConnected,
+    FailedAuthentication,
+    NoValidGuild,
     UnknowError(String),
 }
 
@@ -80,11 +83,11 @@ impl WsResponse {
         }
     }
 
-    pub fn connection_success() -> Self {
+    pub fn connection_success(conn_id: u64) -> Self {
         let status = Status::success(0);
         Self {
             status,
-            response: Response::ConnectionSuccess,
+            response: Response::ConnectionSuccess(conn_id),
         }
     }
 
@@ -93,6 +96,22 @@ impl WsResponse {
         Self {
             status,
             response: Response::Error(ErrorType::ClientNotConnected),
+        }
+    }
+
+    pub fn failed_authentication() -> Self {
+        let status = Status::error();
+        Self {
+            status,
+            response: Response::Error(ErrorType::FailedAuthentication),
+        }
+    }
+
+    pub fn no_valid_guild() -> Self {
+        let status = Status::error();
+        Self {
+            status,
+            response: Response::Error(ErrorType::NoValidGuild),
         }
     }
 
@@ -123,8 +142,16 @@ impl WsResponse {
         }
     }
 
-    pub fn from_json(data: String) -> Result<Self, Error> {
-        serde_json::from_str(&data)
+    pub fn user_details(user_details: UserDetails) -> Self {
+        let status = Status::success(1);
+        Self {
+            status,
+            response: Response::UserDetails(user_details),
+        }
+    }
+
+    pub fn from_json(data: &str) -> Result<Self, Error> {
+        serde_json::from_str(data)
     }
 
     pub fn json(self) -> String {

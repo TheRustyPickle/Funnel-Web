@@ -5,7 +5,7 @@ use eframe::egui::{
     SidePanel, Spinner, TopBottomPanel, Visuals,
 };
 use egui_theme_lerp::ThemeAnimator;
-use funnel_shared::{Channel, GuildWithChannels};
+use funnel_shared::{Channel, GuildWithChannels, UserDetails};
 use strum::IntoEnumIterator;
 
 use crate::core::{FetchStatus, MainWindow, TabState};
@@ -28,6 +28,7 @@ pub struct PanelStatus {
     top_button_size: f32,
     theme_animator: ThemeAnimator,
     fetch_status: HashMap<i64, FetchStatus>,
+    user_details: Option<UserDetails>,
 }
 
 impl Default for PanelStatus {
@@ -48,6 +49,7 @@ impl Default for PanelStatus {
             top_button_size: 0.0,
             theme_animator: ThemeAnimator::new(Visuals::light(), Visuals::dark()),
             fetch_status: HashMap::default(),
+            user_details: None,
         }
     }
 }
@@ -93,6 +95,20 @@ impl PanelStatus {
                     };
                     ui.separator();
                     self.date_nav[self.selected_guild].show_ui(ui, connected, event_bus);
+
+                    if let Some(details) = self.user_details.as_ref() {
+                        ui.separator();
+                        if ui
+                            .button("Log Out")
+                            .on_hover_text("Log Out from the current discord")
+                            .clicked()
+                        {
+                            event_bus.publish(AppEvent::LogOut);
+                        };
+                        ui.separator();
+                        ui.add(Image::new(details.avatar_link()).rounding(15.0));
+                        ui.label(details.full_username());
+                    }
                 });
 
                 ui.add_space(0.5);
@@ -404,19 +420,23 @@ impl PanelStatus {
     }
 
     pub fn set_guild_channels(&mut self, list: Vec<GuildWithChannels>) {
+        self.selected_channel.clear();
+
         let mut date_list = vec![];
-        let mut fetch_status = HashMap::default();
+
         for guild in &list {
             let guild_id = guild.guild.guild_id;
-            fetch_status.insert(guild_id, FetchStatus::default());
+
             date_list.push(DateNavigator::default());
+
+            self.fetch_status.entry(guild_id).or_default();
             self.selected_channel.push(HashSet::new());
         }
+
         self.guild_channels = list;
         self.guild_changed = true;
         self.reset_guild_anim = true;
         self.date_nav = date_list;
-        self.fetch_status = fetch_status;
     }
 
     pub fn date_update(&mut self, date: NaiveDate, guild_id: i64) -> DateHandler {
@@ -461,6 +481,14 @@ impl PanelStatus {
 
     pub fn current_guild_status_m(&mut self) -> &mut FetchStatus {
         self.fetch_status.get_mut(&self.selected_guild()).unwrap()
+    }
+
+    pub fn set_user_details(&mut self, user_details: UserDetails) {
+        self.user_details = Some(user_details);
+    }
+
+    pub fn has_user_details(&self) -> bool {
+        self.user_details.is_some()
     }
 }
 
