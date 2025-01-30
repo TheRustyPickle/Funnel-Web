@@ -17,7 +17,6 @@ impl MainWindow {
             };
 
             match event {
-                // When date changed from the top of the UI
                 AppEvent::DateChanged => {
                     let guild_id = self.panels.selected_guild();
                     let date_handler = self.panels.current_date_handler();
@@ -55,8 +54,6 @@ impl MainWindow {
                         }
                     }
                 }
-                // Messages were gotten from the server and one of the tab is asking to update the earliest
-                // to the latest date with at least 1 message
                 AppEvent::UpdateDate(date, guild_id) => {
                     let date_handler = self.panels.date_update(date, guild_id);
                     self.tabs.set_date_handler(guild_id, date_handler);
@@ -123,6 +120,10 @@ impl MainWindow {
                         .publish_if_needed(AppEvent::UserChartNeedsReload(current_guild));
                     self.event_bus
                         .publish_if_needed(AppEvent::WordTableNeedsReload(current_guild));
+                }
+                AppEvent::LogOut => {
+                    self.reset_all();
+                    self.panels.set_app_status(AppStatus::LoggedOut);
                 }
             }
         }

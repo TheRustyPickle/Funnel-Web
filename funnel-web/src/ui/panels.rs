@@ -95,6 +95,20 @@ impl PanelStatus {
                     };
                     ui.separator();
                     self.date_nav[self.selected_guild].show_ui(ui, connected, event_bus);
+
+                    if let Some(details) = self.user_details.as_ref() {
+                        ui.separator();
+                        if ui
+                            .button("Log Out")
+                            .on_hover_text("Log Out from the current discord")
+                            .clicked()
+                        {
+                            event_bus.publish(AppEvent::LogOut);
+                        };
+                        ui.separator();
+                        ui.add(Image::new(details.avatar_link()).rounding(15.0));
+                        ui.label(details.full_username());
+                    }
                 });
 
                 ui.add_space(0.5);

@@ -8,7 +8,7 @@ use log::info;
 
 use crate::core::add_font;
 use crate::ui::{Connection, PanelStatus, TabHandler};
-use crate::{AppStatus, EventBus, FetchStatus};
+use crate::{AppStatus, EventBus};
 
 pub const JET: &[u8] = include_bytes!("../../../fonts/jetbrains_nerd_propo_regular.ttf");
 pub const CHANGE: &[u8] = include_bytes!("../../../CHANGELOG.md");
@@ -82,18 +82,7 @@ impl MainWindow {
         let counts_done = fetch_status.counts();
         let activities_done = fetch_status.activities();
 
-        let any_partial = fetch_status.any_partial();
-
         let mut nothing_fetched = true;
-
-        // Some partial data was found we are gonna fetch everything from beginning in this case.
-        // Cannot be bothered to manually clear several hash map across all tabs. Set the fetch
-        // status to default value as it's being fetched from the start again
-        if any_partial {
-            info!("Partial fetch status found. Resetting fetch status for {guild_id}");
-            self.tabs.clear_key_data(guild_id);
-            *fetch_status = FetchStatus::default();
-        }
 
         if !messages_done {
             nothing_fetched = false;
@@ -112,6 +101,18 @@ impl MainWindow {
 
         if nothing_fetched {
             self.panels.set_app_status(AppStatus::Idle);
+        }
+    }
+
+    pub fn reset_all(&mut self) {
+        info!("Resetting all data");
+        *self = Self {
+            connection: Connection::default(),
+            panels: PanelStatus::default(),
+            tabs: TabHandler::default(),
+            event_bus: EventBus::default(),
+            ws_sender: None,
+            ws_receiver: None,
         }
     }
 }

@@ -1,6 +1,7 @@
 use eframe::egui::ahash::{HashMap, HashSet};
 use eframe::egui::Ui;
 use funnel_shared::Channel;
+use log::info;
 
 use crate::ui::{
     ChannelTable, DateHandler, MessageChart, Overview, UserChart, UserTable, WordTable,
@@ -192,38 +193,43 @@ impl TabHandler {
             match pending_reload.reload_type {
                 ReloadTab::Overview(guild_id) => {
                     if TabState::Overview == *state && guild_id == self.current_guild {
+                        info!("Reloading Overview for {guild_id}");
                         self.reload_overview(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
                 ReloadTab::UserTable(guild_id) => {
                     if TabState::UserTable == *state && guild_id == self.current_guild {
+                        info!("Reloading User Table for {guild_id}");
                         self.user_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
                 ReloadTab::ChannelTable(guild_id) => {
                     if TabState::ChannelTable == *state && guild_id == self.current_guild {
+                        info!("Reloading Channel Table for {guild_id}");
                         self.channel_table_recreate_rows(pending_reload.guild_id);
-                        to_remove_indices.push(index);
-                    }
-                }
-
-                ReloadTab::WordTable(guild_id) => {
-                    if TabState::CommonWords == *state && guild_id == self.current_guild {
-                        self.word_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
                 ReloadTab::MessageChart(guild_id) => {
                     if TabState::MessageChart == *state && guild_id == self.current_guild {
+                        info!("Reloading Message Chart for {guild_id}");
                         self.reload_message_chart(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
                 ReloadTab::UserChart(guild_id) => {
                     if TabState::UserChart == *state && guild_id == self.current_guild {
+                        info!("Reloading User Chart for {guild_id}");
                         self.reload_user_chart(pending_reload.guild_id);
+                        to_remove_indices.push(index);
+                    }
+                }
+                ReloadTab::WordTable(guild_id) => {
+                    if TabState::CommonWords == *state && guild_id == self.current_guild {
+                        info!("Reloading Word Table for {guild_id}");
+                        self.word_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }

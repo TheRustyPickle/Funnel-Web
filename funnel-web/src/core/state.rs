@@ -54,6 +54,7 @@ pub enum AppEvent {
     MessageChartTypeChanged(i64),
     UserChartTypeChanged(i64),
     SelectedChannelsChanged,
+    LogOut,
 }
 
 #[derive(Default, Display)]
@@ -78,6 +79,8 @@ pub enum AppStatus {
     FailedAuth,
     #[strum(to_string = "Unexpected error found. Reason: {0}")]
     UnexpectedError(String),
+    #[strum(to_string = "Logged out of Discord")]
+    LoggedOut,
 }
 
 impl AppStatus {
@@ -89,7 +92,8 @@ impl AppStatus {
             | AppStatus::CellsCopied
             | AppStatus::NoValidGuild
             | AppStatus::FailedAuth
-            | AppStatus::UnexpectedError(_) => false,
+            | AppStatus::UnexpectedError(_)
+            | AppStatus::LoggedOut => false,
         }
     }
 }

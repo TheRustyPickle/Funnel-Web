@@ -61,7 +61,7 @@ impl FetchStatus {
         !self.activities() && self.activities_page != 0
     }
 
-    pub fn any_partial(&self) -> bool {
+    pub fn no_partial(&self) -> bool {
         !self.partial_messages() && !self.partial_counts() && !self.partial_activities()
     }
 }

@@ -2,10 +2,10 @@ use eframe::egui::{Context, OpenUrl};
 use funnel_shared::{ErrorType, Request, Response, WsResponse, PAGE_VALUE};
 use log::{error, info};
 
-use crate::{AppEvent, AppStatus, MainWindow};
+use crate::{AppEvent, AppStatus, FetchStatus, MainWindow};
 
-// const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=https%3A%2F%2Ffunnel-jyz9.shuttle.app%2Fauth%2Fredirect%2F&scope=guilds+identify";
-const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fauth%2Fredirect%2F&scope=guilds+identify";
+const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=https%3A%2F%2Ffunnel-jyz9.shuttle.app%2Fauth%2Fredirect%2F&scope=identify+guilds";
+// const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fauth%2Fredirect%2F&scope=guilds+identify";
 
 pub fn handle_ws_message(
     window: &mut MainWindow,
@@ -19,18 +19,22 @@ pub fn handle_ws_message(
 
     match response.response {
         Response::ConnectionSuccess(conn_id) => {
-            info!("Client successfully connected. Conn id: {conn_id}");
+            let no_login = window.connection.no_login();
+            if no_login {
+                info!("Requesting guild without login");
+                window.send_ws(Request::guild_no_login());
+            } else {
+                info!("Opening auth url in a new tab");
+                let full_url = format!("{LOGIN_URL}&state={}", conn_id);
 
-            // TODO: Maybe maintain some kind of cache instead of force login each time
-            let full_url = format!("{LOGIN_URL}&state={}", conn_id);
+                let open_url = OpenUrl {
+                    url: full_url,
+                    new_tab: true,
+                };
 
-            let open_url = OpenUrl {
-                url: full_url,
-                new_tab: true,
-            };
-
-            ctx.open_url(open_url);
-            window.panels.set_app_status(AppStatus::LoggingIn);
+                ctx.open_url(open_url);
+                window.panels.set_app_status(AppStatus::LoggingIn);
+            }
         }
         Response::Guilds(guilds) => {
             window.connection.set_connected();
@@ -47,6 +51,17 @@ pub fn handle_ws_message(
                     .set_channel_table_channel_map(guild.guild.guild_id, guild.channels.clone());
             }
             window.panels.set_guild_channels(guilds);
+
+            let guild_id = window.panels.selected_guild();
+            let fetch_status = window.panels.current_guild_status_m();
+            let no_partial = fetch_status.no_partial();
+
+            if !no_partial {
+                info!("Partial fetch status found. Resetting fetch status for {guild_id}");
+                window.tabs.clear_key_data(guild_id);
+                *fetch_status = FetchStatus::default();
+            }
+
             window.event_bus.publish(AppEvent::GuildChanged);
         }
         Response::Messages { guild_id, messages } => {

@@ -13,7 +13,7 @@ impl MainWindow {
             if let Some(event) = self.ws_receiver.as_ref().unwrap().try_recv() {
                 match event {
                     WsEvent::Closed => {
-                        info!("Connection to WS has been closed");
+                        info!("Connection to websocket has been closed");
                         self.remove_channels();
                         self.connection.failed_connection();
                         self.panels.set_app_status(AppStatus::FailedWs(
@@ -21,14 +21,19 @@ impl MainWindow {
                         ));
                     }
                     WsEvent::Error(e) => {
-                        error!("Error in ws. Reason: {e}");
+                        error!("Error in websocket. Reason: {e}");
                         self.panels.set_app_status(AppStatus::FailedWs(e));
                         self.remove_channels();
                         self.connection.failed_connection();
                     }
                     WsEvent::Opened => {
                         info!("Connection to WS has been opened");
-                        self.send_ws(Request::StartConnection);
+                        let no_login = self.connection.no_login();
+                        if no_login {
+                            self.send_ws(Request::start_no_login());
+                        } else {
+                            self.send_ws(Request::start());
+                        }
                     }
                     WsEvent::Message(message) => {
                         if let WsMessage::Text(text) = message {
