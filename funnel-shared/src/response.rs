@@ -8,6 +8,7 @@ use crate::{GuildWithChannels, MemberActivity, MemberCount, MessageWithUser, Use
 #[derive(Serialize, Deserialize)]
 pub enum Response {
     UserDetails(UserDetails),
+    SessionID(String),
     Guilds(Vec<GuildWithChannels>),
     ConnectionSuccess(u64),
     Messages {
@@ -22,6 +23,7 @@ pub enum Response {
         guild_id: i64,
         activities: Vec<MemberActivity>,
     },
+    LoggedOut,
     Error(ErrorType),
 }
 
@@ -57,6 +59,9 @@ pub enum ErrorType {
     ClientNotConnected,
     FailedAuthentication,
     NoValidGuild,
+    FailedSaveSession(String),
+    FailedLogOut(String),
+    InvalidSession,
     UnknowError(String),
 }
 
@@ -147,6 +152,46 @@ impl WsResponse {
         Self {
             status,
             response: Response::UserDetails(user_details),
+        }
+    }
+
+    pub fn session(id: String) -> Self {
+        let status = Status::success(0);
+        Self {
+            status,
+            response: Response::SessionID(id),
+        }
+    }
+
+    pub fn failed_session_save(reason: String) -> Self {
+        let status = Status::error();
+        Self {
+            status,
+            response: Response::Error(ErrorType::FailedSaveSession(reason)),
+        }
+    }
+
+    pub fn failed_log_out(reason: String) -> Self {
+        let status = Status::error();
+        Self {
+            status,
+            response: Response::Error(ErrorType::FailedLogOut(reason)),
+        }
+    }
+
+    pub fn logged_out() -> Self {
+        let status = Status::success(0);
+        Self {
+            status,
+            response: Response::LoggedOut,
+        }
+    }
+
+    pub fn invalid_session() -> Self {
+        let status = Status::error();
+        Self {
+            status,
+            response: Response::Error(ErrorType::InvalidSession),
         }
     }
 

@@ -6,6 +6,8 @@ pub enum Request {
     StartConnection,
     StartConnectionNoLogin,
     GetGuildNoLogin,
+    Session { id: String },
+    LogOut,
     GetMessages { guild_id: i64, page: u64 },
     GetGuildMemberCount { guild_id: i64, page: u64 },
     GetGuildMemberActivity { guild_id: i64, page: u64 },
@@ -22,6 +24,10 @@ impl Request {
 
     pub fn guild_no_login() -> Self {
         Request::GetGuildNoLogin
+    }
+
+    pub fn session(id: String) -> Self {
+        Request::Session { id }
     }
 
     pub fn get_messages(guild_id: i64, page: u64) -> Self {
