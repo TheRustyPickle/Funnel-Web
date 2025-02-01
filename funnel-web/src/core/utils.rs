@@ -2,6 +2,9 @@ use eframe::egui::{Context, FontData, FontDefinitions, FontFamily, Id, RichText,
 use std::fmt::Display;
 use std::sync::Arc;
 
+#[cfg(target_arch = "wasm32")]
+use web_sys::window;
+
 use crate::core::{CHANGE, JET};
 use crate::ui::Card;
 
@@ -240,4 +243,38 @@ pub fn get_stripped_windows(content: Vec<&str>, window_size: usize) -> Vec<Strin
         valid_windows.push(joined_string);
     }
     valid_windows
+}
+
+pub fn save_session(id: String) {
+    if cfg!(target_arch = "wasm32") {
+        if let Some(storage) = window().and_then(|w| w.local_storage().ok().flatten()) {
+            let _ = storage.set_item("session_id", &id);
+        }
+    } else {
+        // TODO: Modify for native app
+        log::info!("To be implemented")
+    }
+}
+
+pub fn get_session() -> Option<String> {
+    if cfg!(target_arch = "wasm32") {
+        // WebAssembly-specific code
+        window()
+            .and_then(|w| w.local_storage().ok().flatten())
+            .and_then(|s| s.get_item("session_id").ok().flatten())
+    } else {
+        // TODO: Modify for native app
+        None
+    }
+}
+
+pub fn delete_session() {
+    if cfg!(target_arch = "wasm32") {
+        if let Some(storage) = window().and_then(|w| w.local_storage().ok().flatten()) {
+            let _ = storage.remove_item("session_id");
+        }
+    } else {
+        // TODO: Modify for native app
+        log::info!("To be implemented")
+    }
 }

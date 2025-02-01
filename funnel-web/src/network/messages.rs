@@ -2,7 +2,9 @@ use eframe::egui::{Context, OpenUrl};
 use funnel_shared::{ErrorType, Request, Response, WsResponse, PAGE_VALUE};
 use log::{error, info};
 
-use crate::{AppEvent, AppStatus, FetchStatus, MainWindow};
+use crate::{
+    delete_session, get_session, save_session, AppEvent, AppStatus, FetchStatus, MainWindow,
+};
 
 const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=https%3A%2F%2Ffunnel-jyz9.shuttle.app%2Fauth%2Fredirect%2F&scope=identify+guilds";
 // const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8000%2Fauth%2Fredirect%2F&scope=guilds+identify";
@@ -13,26 +15,33 @@ pub fn handle_ws_message(
     ctx: &Context,
 ) -> Option<Request> {
     if response.status.is_error() {
-        handle_errors(window, response.get_error());
+        handle_errors(window, response.get_error(), ctx);
         return None;
     }
 
     match response.response {
         Response::ConnectionSuccess(conn_id) => {
+            window.conn_id = conn_id;
+
             let no_login = window.connection.no_login();
             if no_login {
                 info!("Requesting guild without login");
                 window.send_ws(Request::guild_no_login());
             } else {
-                info!("Opening auth url in a new tab");
-                let full_url = format!("{LOGIN_URL}&state={}", conn_id);
+                let existing_token = get_session();
+                if let Some(token) = existing_token {
+                    window.send_ws(Request::session(token));
+                } else {
+                    info!("Opening auth url in a new tab");
+                    let full_url = format!("{LOGIN_URL}&state={}", conn_id);
 
-                let open_url = OpenUrl {
-                    url: full_url,
-                    new_tab: true,
-                };
+                    let open_url = OpenUrl {
+                        url: full_url,
+                        new_tab: true,
+                    };
 
-                ctx.open_url(open_url);
+                    ctx.open_url(open_url);
+                }
                 window.panels.set_app_status(AppStatus::LoggingIn);
             }
         }
@@ -224,12 +233,20 @@ pub fn handle_ws_message(
         Response::UserDetails(user_details) => {
             window.panels.set_user_details(user_details);
         }
+        Response::SessionID(id) => {
+            save_session(id);
+        }
+        Response::LoggedOut => {
+            window.reset_all();
+            window.panels.set_app_status(AppStatus::LoggedOut);
+            delete_session();
+        }
         Response::Error(_) => unreachable!(),
     }
     None
 }
 
-fn handle_errors(window: &mut MainWindow, error: ErrorType) {
+fn handle_errors(window: &mut MainWindow, error: ErrorType, ctx: &Context) {
     match error {
         ErrorType::ClientNotConnected => {
             error!("Client did not connect properly to the server");
@@ -250,17 +267,37 @@ fn handle_errors(window: &mut MainWindow, error: ErrorType) {
         ErrorType::NoValidGuild => {
             error!("No valid guild was found with this discord account");
             window.connection.failed_connection();
-            window.remove_channels();
             window.panels.set_app_status(AppStatus::NoValidGuild);
         }
-
+        ErrorType::FailedSaveSession(reason) => {
+            error!("Failed to save the session. Reason: {reason}");
+        }
+        ErrorType::FailedLogOut(reason) => {
+            error!("Failed to log out. Reason: {reason}");
+            window
+                .panels
+                .set_app_status(AppStatus::FailedLogOut(reason));
+        }
         ErrorType::UnknowError(reason) => {
             error!("Unexpected error. Reason: {reason}");
             window.connection.failed_connection();
-            window.remove_channels();
             window
                 .panels
                 .set_app_status(AppStatus::UnexpectedError(reason));
+        }
+        ErrorType::InvalidSession => {
+            error!("Session is invalid. Opening discord auth");
+            delete_session();
+
+            let full_url = format!("{LOGIN_URL}&state={}", window.conn_id);
+
+            let open_url = OpenUrl {
+                url: full_url,
+                new_tab: true,
+            };
+
+            ctx.open_url(open_url);
+            window.panels.set_app_status(AppStatus::LoggingIn);
         }
     }
 }
