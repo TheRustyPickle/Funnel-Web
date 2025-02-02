@@ -18,7 +18,6 @@ pub struct UserChart {
     chart_data: BTreeMap<String, IndexMap<NaiveDateTime, i64>>,
     chart_values: BTreeMap<String, bool>,
     chart_labels: Vec<Vec<(String, String)>>,
-    /// Timestamp key with value HashMap with key channel id and value as data point
     hourly_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<String>>>,
     daily_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<String>>>,
     weekly_data: BTreeMap<NaiveDateTime, HashMap<i64, HashSet<String>>>,
@@ -57,12 +56,12 @@ impl Default for UserChart {
             last_day: None,
             last_week: None,
             last_month: None,
-            date_handler: Default::default(),
+            date_handler: DateHandler::default(),
             reload_count: 0,
             open_modal: false,
             saved_bars: BTreeMap::new(),
-            channels: Default::default(),
-            selected_channels: Default::default(),
+            channels: Vec::default(),
+            selected_channels: HashSet::default(),
         }
     }
 }
@@ -157,7 +156,7 @@ impl ShowUI for UserChart {
                         }
 
                         index += 1.0;
-                        Some(Bar::new(x, y).name(format!("{}\n{val}", date)))
+                        Some(Bar::new(x, y).name(format!("{date}\n{val}")))
                     })
                     .collect();
 
@@ -300,7 +299,7 @@ impl UserChart {
         }
 
         if !self.open_modal {
-            for (key, val) in self.chart_values.clone().into_iter() {
+            for (key, val) in self.chart_values.clone() {
                 if val {
                     self.chart_data.entry(key).or_default();
                 } else {
@@ -453,13 +452,13 @@ impl UserChart {
         let mut selected_channels = HashSet::default();
 
         if self.selected_channels.is_empty() {
-            for channel in self.channels.iter() {
+            for channel in &self.channels {
                 selected_channels.insert(channel.channel_id);
             }
         } else {
-            for index in self.selected_channels.iter() {
+            for index in &self.selected_channels {
                 if index == &0_usize {
-                    for channel in self.channels.iter() {
+                    for channel in &self.channels {
                         selected_channels.insert(channel.channel_id);
                     }
                     break;
@@ -480,7 +479,7 @@ impl UserChart {
             let mut total_users: i64 = 0;
             let mut other_users: HashMap<String, i64> = HashMap::new();
 
-            for val in target_values.iter() {
+            for val in &target_values {
                 if val == "Active Users" {
                     continue;
                 }
@@ -491,7 +490,7 @@ impl UserChart {
                 if selected_channels.contains(channel) {
                     total_users += usernames.len() as i64;
 
-                    for name in usernames.iter() {
+                    for name in usernames {
                         if target_values.contains(name) {
                             *other_users.get_mut(name).unwrap() = 1;
                         }
@@ -535,7 +534,7 @@ impl TabHandler {
         self.user_chart
             .get_mut(&guild_id)
             .unwrap()
-            .handle_message(message, event_bus)
+            .handle_message(message, event_bus);
     }
 
     pub fn reload_user_chart(&mut self, guild_id: i64) {

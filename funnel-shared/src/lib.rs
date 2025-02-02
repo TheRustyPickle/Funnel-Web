@@ -1,10 +1,10 @@
-pub mod user_details;
 pub mod guild_channel;
 pub mod member_activity;
 pub mod member_count;
 pub mod message_user;
 pub mod request;
 pub mod response;
+pub mod user_details;
 
 pub use guild_channel::*;
 pub use member_activity::*;

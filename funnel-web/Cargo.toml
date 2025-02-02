@@ -8,6 +8,9 @@ name = "funnel-web"
 path = "src/main.rs"
 
 [dependencies]
+funnel-shared = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 chrono = "0.4.39"
 eframe = { version = "0.30.0", default-features = false, features = [
     "x11",
@@ -23,15 +26,17 @@ egui_extras = { version = "0.30.0", features = [
     "serde",
 ] }
 egui_plot = "0.30.0"
-ewebsock = "0.8.0"
-funnel-shared = { workspace = true }
+ewebsock = { version = "0.8.0", features = ["tls"] }
 image = "0.25.5"
 log = "0.4.22"
-serde = { workspace = true }
-serde_json = { workspace = true }
 strum = "0.26.3"
 strum_macros = "0.26.4"
-wasm-bindgen-futures = "0.4.49"
-web-sys = "0.3.76"
 pretty_env_logger = "0.5.0"
 indexmap = "2.7.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+dirs = "6.0.0"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4.49"
+web-sys = "0.3.76"

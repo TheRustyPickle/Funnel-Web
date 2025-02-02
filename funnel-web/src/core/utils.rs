@@ -1,6 +1,17 @@
 use eframe::egui::{Context, FontData, FontDefinitions, FontFamily, Id, RichText, Ui};
+use log::{error, info};
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+use std::fs;
+use std::io::Write;
+use std::path::PathBuf;
 use std::sync::Arc;
+
+#[cfg(target_arch = "wasm32")]
+use web_sys::window;
+
+#[cfg(not(target_arch = "wasm32"))]
+use dirs::data_local_dir;
 
 use crate::core::{CHANGE, JET};
 use crate::ui::Card;
@@ -69,7 +80,7 @@ impl CardData {
 
             let header_text_len = header_text.chars().count();
             if header_text_len > *max_content {
-                *max_content = header_text_len
+                *max_content = header_text_len;
             }
 
             let compare_hover_text = match card_type {
@@ -159,19 +170,20 @@ pub fn compare_number(ui: &mut Ui, old_num: u32, new_num: u32, id: Id) -> String
 
     if difference > 0.0 {
         let difference = ui.ctx().animate_value_with_time(id, difference, 1.0);
-        format!("{:.2}% ↑", difference)
+        format!("{difference:.2}% ↑")
     } else if difference < 0.0 {
         let difference = ui.ctx().animate_value_with_time(id, difference.abs(), 1.0);
         let difference = difference.abs();
-        format!("{:.2}% ↓", difference)
+        format!("{difference:.2}% ↓")
     } else {
-        format!("{:.2}%", difference)
+        format!("{difference:.2}%")
     }
 }
 
+#[must_use]
 pub fn get_change_log() -> Vec<ChangeLog> {
     let full_change_log = String::from_utf8(CHANGE.into()).unwrap();
-    let mut split_change_log: Vec<&str> = full_change_log.split("\n").collect();
+    let mut split_change_log: Vec<&str> = full_change_log.split('\n').collect();
     split_change_log.remove(0);
 
     let mut change_logs = Vec::new();
@@ -202,7 +214,7 @@ pub fn get_change_log() -> Vec<ChangeLog> {
 
             last_change_log.header = to_semi_header(proper_header);
         } else {
-            let proper_split = split.replace("*", "•");
+            let proper_split = split.replace('*', "•");
             last_change_log.normal_text.push_str(proper_split.as_str());
             last_change_log.normal_text.push('\n');
         }
@@ -212,6 +224,7 @@ pub fn get_change_log() -> Vec<ChangeLog> {
     change_logs
 }
 
+#[must_use]
 pub fn get_stripped_windows(content: Vec<&str>, window_size: usize) -> Vec<String> {
     let mut valid_windows = Vec::new();
 
@@ -240,4 +253,114 @@ pub fn get_stripped_windows(content: Vec<&str>, window_size: usize) -> Vec<Strin
         valid_windows.push(joined_string);
     }
     valid_windows
+}
+
+#[derive(Serialize, Deserialize)]
+struct StringSession {
+    id: String,
+}
+
+pub fn save_session(id: String) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Some(storage) = window().and_then(|w| w.local_storage().ok().flatten()) {
+            let _ = storage.set_item("session_id", &id);
+        }
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        if let Some(mut path) = get_target_path() {
+            path.push("session.json");
+
+            let session = StringSession { id };
+            match serde_json::to_string(&session) {
+                Ok(json) => match fs::File::create(&path) {
+                    Ok(mut file) => {
+                        if let Err(e) = file.write_all(json.as_bytes()) {
+                            error!("Failed to write to session file {:?}: {}", path, e);
+                        }
+                    }
+                    Err(e) => error!("Failed to create session file {:?}: {}", path, e),
+                },
+                Err(e) => error!("Failed to serialize session data: {}", e),
+            }
+        }
+    }
+}
+
+#[must_use]
+pub fn get_session() -> Option<String> {
+    #[cfg(target_arch = "wasm32")]
+    {
+        window()
+            .and_then(|w| w.local_storage().ok().flatten())
+            .and_then(|s| s.get_item("session_id").ok().flatten())
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let path = get_session_path()?;
+
+        match fs::read_to_string(&path) {
+            Ok(content) => match serde_json::from_str::<StringSession>(&content) {
+                Ok(session) => Some(session.id),
+                Err(e) => {
+                    error!("Failed to deserialize session file {:?}: {}", path, e);
+                    None
+                }
+            },
+            Err(e) => {
+                error!("Failed to read session file {:?}: {}", path, e);
+                None
+            }
+        }
+    }
+}
+
+pub fn delete_session() {
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Some(storage) = window().and_then(|w| w.local_storage().ok().flatten()) {
+            let _ = storage.remove_item("session_id");
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let path = get_session_path();
+        if let Some(path) = path {
+            if let Err(e) = fs::remove_file(&path) {
+                error!("Failed to delete session file {:?}: {}", path, e);
+            } else {
+                info!("Session file {:?} deleted successfully", path);
+            }
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_target_path() -> Option<PathBuf> {
+    if let Some(mut path) = data_local_dir() {
+        path.push("Funnel");
+        if let Err(e) = fs::create_dir_all(&path) {
+            error!("Failed to create Funnel directory {:?}: {}", path, e);
+            return None;
+        }
+        Some(path)
+    } else {
+        error!("Failed to determine local data directory.");
+        None
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_session_path() -> Option<PathBuf> {
+    if let Some(mut path) = data_local_dir() {
+        path.push("Funnel");
+        path.push("session.json");
+        Some(path)
+    } else {
+        error!("Failed to determine local data directory.");
+        None
+    }
 }

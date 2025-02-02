@@ -1,7 +1,12 @@
 # Pre-Release
 
+## 02.2025
+
+* Add persistent Discord login
+
 ## 01.2025
 
+* Add Discord login option
 * Add incremental fetching of data as guilds are selected
 * Add data filtering based on the selected channels on tabs
 * Move to bar chart for User Chart

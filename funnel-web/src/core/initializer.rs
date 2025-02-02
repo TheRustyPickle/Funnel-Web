@@ -4,7 +4,7 @@ use egui_extras::install_image_loaders;
 use ewebsock::WsMessage;
 use ewebsock::{WsReceiver, WsSender};
 use funnel_shared::Request;
-use log::info;
+use log::{error, info};
 
 use crate::core::add_font;
 use crate::ui::{Connection, PanelStatus, TabHandler};
@@ -20,6 +20,7 @@ pub struct MainWindow {
     pub event_bus: EventBus,
     pub ws_sender: Option<WsSender>,
     pub ws_receiver: Option<WsReceiver>,
+    pub conn_id: u64,
 }
 
 impl App for MainWindow {
@@ -32,6 +33,7 @@ impl App for MainWindow {
 }
 
 impl MainWindow {
+    #[must_use]
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.set_pixels_per_point(1.1);
         cc.egui_ctx.set_theme(ThemePreference::Light);
@@ -48,6 +50,7 @@ impl MainWindow {
             event_bus: EventBus::default(),
             ws_sender: None,
             ws_receiver: None,
+            conn_id: 0,
         }
     }
 
@@ -64,6 +67,10 @@ impl MainWindow {
     pub fn send_ws(&mut self, message: Request) {
         if let Some(sender) = self.ws_sender.as_mut() {
             sender.send(WsMessage::Text(message.to_json()));
+        } else {
+            error!(
+                "Attempted to send a message to the websocket without a connection. {message:#?}"
+            );
         }
     }
 
@@ -113,6 +120,12 @@ impl MainWindow {
             event_bus: EventBus::default(),
             ws_sender: None,
             ws_receiver: None,
+            conn_id: 0,
         }
+    }
+
+    #[must_use]
+    pub fn has_channels(&self) -> bool {
+        self.ws_sender.is_some() && self.ws_receiver.is_some()
     }
 }

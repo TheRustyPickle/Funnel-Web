@@ -1,4 +1,5 @@
 use ewebsock::Options;
+use funnel_shared::Request;
 use log::{error, info};
 use std::collections::VecDeque;
 
@@ -39,18 +40,28 @@ impl MainWindow {
                     self.tabs.compare_overview(guild_id);
                 }
                 AppEvent::StartWebsocket => {
-                    info!("Starting connection to the websocket");
-                    self.panels.set_app_status(AppStatus::ConnectingToWs);
-                    let options = Options::default();
-                    let result = ewebsock::connect(WS_URL, options);
-                    match result {
-                        Ok((sender, receiver)) => {
-                            self.set_channels(sender, receiver);
+                    if !self.has_channels() {
+                        info!("Starting connection to the websocket");
+                        self.panels.set_app_status(AppStatus::ConnectingToWs);
+                        let options = Options::default();
+                        let result = ewebsock::connect(WS_URL, options);
+                        match result {
+                            Ok((sender, receiver)) => {
+                                self.set_channels(sender, receiver);
+                            }
+                            Err(e) => {
+                                error!("Failed to connect to WS. Reason: {e}");
+                                self.connection.failed_connection();
+                                self.panels.set_app_status(AppStatus::FailedWs(e));
+                            }
                         }
-                        Err(e) => {
-                            error!("Failed to connect to WS. Reason: {e}");
-                            self.connection.failed_connection();
-                            self.panels.set_app_status(AppStatus::FailedWs(e));
+                    } else {
+                        info!("websocket connection already exists. Not creating a new one");
+                        let no_login = self.connection.no_login();
+                        if no_login {
+                            self.send_ws(Request::start_no_login());
+                        } else {
+                            self.send_ws(Request::start());
                         }
                     }
                 }
@@ -67,13 +78,13 @@ impl MainWindow {
                     self.tabs.set_channels(guild_channels);
 
                     let selected_channels = self.panels.current_selected_channels();
-                    self.tabs.set_selected_channels(selected_channels);
+                    self.tabs.set_selected_channels(&selected_channels);
 
                     self.fetch_guild_data();
                 }
                 AppEvent::StopCompareOverview => {
                     let guild_id = self.panels.selected_guild();
-                    self.tabs.stop_compare_overview(guild_id)
+                    self.tabs.stop_compare_overview(guild_id);
                 }
                 AppEvent::OverviewNeedsReload(guild_id) => {
                     self.tabs
@@ -108,7 +119,7 @@ impl MainWindow {
                 AppEvent::SelectedChannelsChanged => {
                     let current_guild = self.panels.selected_guild();
                     let selected_channels = self.panels.current_selected_channels();
-                    self.tabs.set_selected_channels(selected_channels);
+                    self.tabs.set_selected_channels(&selected_channels);
 
                     self.event_bus
                         .publish_if_needed(AppEvent::OverviewNeedsReload(current_guild));
@@ -122,8 +133,8 @@ impl MainWindow {
                         .publish_if_needed(AppEvent::WordTableNeedsReload(current_guild));
                 }
                 AppEvent::LogOut => {
-                    self.reset_all();
-                    self.panels.set_app_status(AppStatus::LoggedOut);
+                    self.panels.set_app_status(AppStatus::AttemptLogOut);
+                    self.send_ws(Request::LogOut);
                 }
             }
         }

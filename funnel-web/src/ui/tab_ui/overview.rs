@@ -88,22 +88,22 @@ impl Default for Overview {
             show_count: true,
             show_joins: true,
             show_leaves: true,
-            show_full_chart: Default::default(),
-            chart_type: Default::default(),
-            chart_labels: Default::default(),
+            show_full_chart: bool::default(),
+            chart_type: ChartType::default(),
+            chart_labels: Vec::default(),
             chart_data,
-            activity_data: Default::default(),
-            channel_map: Default::default(),
-            data: Default::default(),
-            compare_data: Default::default(),
-            card_size: Default::default(),
-            compare_nav: Default::default(),
-            compare_size: Default::default(),
-            date_handler: Default::default(),
-            max_content: Default::default(),
-            reload_count: Default::default(),
-            channels: Default::default(),
-            selected_channels: Default::default(),
+            activity_data: HashMap::default(),
+            channel_map: HashMap::default(),
+            data: OverviewData::default(),
+            compare_data: Option::default(),
+            card_size: f32::default(),
+            compare_nav: DateNavigator::default(),
+            compare_size: f32::default(),
+            date_handler: DateHandler::default(),
+            max_content: usize::default(),
+            reload_count: u64::default(),
+            channels: Vec::default(),
+            selected_channels: HashSet::default(),
         }
     }
 }
@@ -333,7 +333,7 @@ impl Overview {
                             self.chart_labels.push((date, 0, count, 0));
                         } else if let Some(target_data) = self.chart_labels.get_mut(index as usize)
                         {
-                            *target_data = (target_data.0, target_data.1, count, 0)
+                            *target_data = (target_data.0, target_data.1, count, 0);
                         }
                     }
                     index += 1.0;
@@ -368,7 +368,7 @@ impl Overview {
                             self.chart_labels.push((date, 0, 0, count));
                         } else if let Some(target_data) = self.chart_labels.get_mut(index as usize)
                         {
-                            *target_data = (target_data.0, target_data.1, target_data.2, count)
+                            *target_data = (target_data.0, target_data.1, target_data.2, count);
                         }
                     }
                     index += 1.0;
@@ -414,15 +414,15 @@ impl Overview {
                         )
                     }
                 };
-                let mut hover_text = format!("{}\nY = {:.0}", date_label, val.y);
+                let mut hover_text = format!("{date_label}\nY = {:.0}", val.y);
                 if self.show_count {
-                    hover_text += &format!("\nTotal Members = {}", count);
+                    hover_text += &format!("\nTotal Members = {count}");
                 }
                 if self.show_joins {
-                    hover_text += &format!("\nJoins = {}", joins);
+                    hover_text += &format!("\nJoins = {joins}");
                 }
                 if self.show_leaves {
-                    hover_text += &format!("\nLeaves = {}", leaves);
+                    hover_text += &format!("\nLeaves = {leaves}");
                 }
                 hover_text
             } else {
@@ -762,13 +762,13 @@ impl Overview {
         let mut member_leaves = 0;
 
         if self.selected_channels.is_empty() {
-            for channel in self.channels.iter() {
+            for channel in &self.channels {
                 selected_channels.insert(channel.channel_id);
             }
         } else {
-            for index in self.selected_channels.iter() {
+            for index in &self.selected_channels {
                 if index == &0_usize {
-                    for channel in self.channels.iter() {
+                    for channel in &self.channels {
                         selected_channels.insert(channel.channel_id);
                     }
                     break;
@@ -799,7 +799,7 @@ impl Overview {
                         if !selected_channels.contains(&channel_id) {
                             continue;
                         }
-                        deleted_message += count
+                        deleted_message += count;
                     }
                 }
             });
@@ -1214,22 +1214,22 @@ impl Overview {
     }
 
     fn fill_member_activity(&mut self) {
-        for data in self.get_count().hourly.clone().into_iter() {
+        for data in self.get_count().hourly.clone() {
             self.get_joins_m().hourly.insert(data.0, 0);
             self.get_leaves_m().hourly.insert(data.0, 0);
         }
 
-        for data in self.get_count().daily.clone().into_iter() {
+        for data in self.get_count().daily.clone() {
             self.get_joins_m().daily.insert(data.0, 0);
             self.get_leaves_m().daily.insert(data.0, 0);
         }
 
-        for data in self.get_count().weekly.clone().into_iter() {
+        for data in self.get_count().weekly.clone() {
             self.get_joins_m().weekly.insert(data.0, 0);
             self.get_leaves_m().weekly.insert(data.0, 0);
         }
 
-        for data in self.get_count().monthly.clone().into_iter() {
+        for data in self.get_count().monthly.clone() {
             self.get_joins_m().monthly.insert(data.0, 0);
             self.get_leaves_m().monthly.insert(data.0, 0);
         }
@@ -1249,14 +1249,14 @@ impl TabHandler {
         self.overview
             .get_mut(&guild_id)
             .unwrap()
-            .handle_message(message, event_bus)
+            .handle_message(message, event_bus);
     }
 
     pub fn set_overview_channel_map(&mut self, guild_id: i64, channels: Vec<Channel>) {
         self.overview
             .get_mut(&guild_id)
             .unwrap()
-            .set_channel_id_map(channels)
+            .set_channel_id_map(channels);
     }
 
     pub fn reload_overview(&mut self, guild_id: i64) {

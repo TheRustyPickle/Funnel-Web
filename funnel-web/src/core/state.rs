@@ -18,10 +18,12 @@ pub enum TabState {
 }
 
 impl TabState {
+    #[must_use]
     pub fn last_value() -> Self {
         TabState::CommonWords
     }
 
+    #[must_use]
     pub fn first_value() -> Self {
         TabState::default()
     }
@@ -81,19 +83,28 @@ pub enum AppStatus {
     UnexpectedError(String),
     #[strum(to_string = "Logged out of Discord")]
     LoggedOut,
+    #[strum(to_string = "Attempting to log out of Discord")]
+    AttemptLogOut,
+    #[strum(to_string = "Faiiled to log out of Discord. Reason: {0}")]
+    FailedLogOut(String),
 }
 
 impl AppStatus {
+    #[must_use]
     pub fn show_spinner(&self) -> bool {
         match self {
-            AppStatus::ConnectingToWs | AppStatus::Fetching | AppStatus::LoggingIn => true,
+            AppStatus::ConnectingToWs
+            | AppStatus::Fetching
+            | AppStatus::LoggingIn
+            | AppStatus::AttemptLogOut => true,
             AppStatus::Idle
             | AppStatus::FailedWs(_)
             | AppStatus::CellsCopied
             | AppStatus::NoValidGuild
             | AppStatus::FailedAuth
             | AppStatus::UnexpectedError(_)
-            | AppStatus::LoggedOut => false,
+            | AppStatus::LoggedOut
+            | AppStatus::FailedLogOut(_) => false,
         }
     }
 }

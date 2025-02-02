@@ -21,6 +21,7 @@ pub struct GuildWithChannels {
 }
 
 impl GuildWithChannels {
+    #[must_use]
     pub fn new(guild: Guild, channels: Vec<Channel>) -> Self {
         Self { guild, channels }
     }

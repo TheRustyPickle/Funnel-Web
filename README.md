@@ -1,6 +1,17 @@
 # Funnel
+[![wakatime](https://wakatime.com/badge/github/TheRustyPickle/Funnel-Web.svg)](https://wakatime.com/badge/github/TheRustyPickle/Funnel-Web)
 
-A work-in-progress platform for visualizing Discord analytics, built with Rust and [egui](https://github.com/emilk/egui). This repository contains the user interface component of the project. While designed for WebAssembly (Wasm) compatibility, this can also be compiled into a native application.
+A platform for visualizing Discord analytics, built with Rust and [egui](https://github.com/emilk/egui). This repository contains the user interface component of the project. While designed for WebAssembly (Wasm) compatibility, this can also be compiled into a native application.
+
+## Features
+
+- **Overview**: Summarizes key metrics such as total messages, unique users, most active channels and users. Includes a chart tracking member movement (e.g., joins and leaves).
+- **User Table**: Displays all users, including total messages, word counts, and other details.
+- **Channel Table**: Provides message statistics for each channel.
+- **Message Chart**: Visualizes total and deleted messages. Allows adding individual users for detailed analysis over daily, hourly, weekly, and monthly intervals.
+- **User Activity Chart**: Shows active user counts over different timeframes (daily, hourly, weekly, monthly).
+- **Common Words Analysis**: Highlights the most common words or phrases used in messages.
+- **Channel Filter**: Allows filtering all analytics by the selected channels.
 
 ## Getting Started
 
@@ -31,16 +42,6 @@ A work-in-progress platform for visualizing Discord analytics, built with Rust a
     ```sh
     cargo run --release
     ```
-
-## Planned Features
-
-- [x] **Overview**: Summarizes key metrics such as total messages, unique users, most active channels and users. Includes a chart tracking member movement (e.g., joins and leaves).
-- [x] **User Table**: Displays all users, including total messages, word counts, and other details.
-- [x] **Channel Table**: Provides message statistics for each channel.
-- [x] **Message Chart**: Visualizes total and deleted messages. Allows adding individual users for detailed analysis over daily, hourly, weekly, and monthly intervals.
-- [x] **User Activity Chart**: Shows active user counts over different timeframes (daily, hourly, weekly, monthly).
-- [x] **Common Words Analysis**: Highlights the most common words or phrases used in messages.
-- [x] **Channel Filter**: Allow filtering all analytics by the selected channels
 
 ## Contributing
 

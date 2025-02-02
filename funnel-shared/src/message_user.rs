@@ -26,6 +26,7 @@ pub struct MessageWithUser {
 }
 
 impl MessageWithUser {
+    #[must_use]
     pub fn new(message: Message, sender: User) -> Self {
         Self { message, sender }
     }
