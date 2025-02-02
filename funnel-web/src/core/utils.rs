@@ -1,9 +1,17 @@
 use eframe::egui::{Context, FontData, FontDefinitions, FontFamily, Id, RichText, Ui};
+use log::{error, info};
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+use std::fs;
+use std::io::Write;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
 use web_sys::window;
+
+#[cfg(not(target_arch = "wasm32"))]
+use dirs::data_local_dir;
 
 use crate::core::{CHANGE, JET};
 use crate::ui::Card;
@@ -247,6 +255,11 @@ pub fn get_stripped_windows(content: Vec<&str>, window_size: usize) -> Vec<Strin
     valid_windows
 }
 
+#[derive(Serialize, Deserialize)]
+struct StringSession {
+    id: String,
+}
+
 pub fn save_session(id: String) {
     #[cfg(target_arch = "wasm32")]
     {
@@ -256,8 +269,22 @@ pub fn save_session(id: String) {
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        // TODO: Modify for native app
-        log::info!("To be implemented {id}");
+        if let Some(mut path) = get_target_path() {
+            path.push("session.json");
+
+            let session = StringSession { id };
+            match serde_json::to_string(&session) {
+                Ok(json) => match fs::File::create(&path) {
+                    Ok(mut file) => {
+                        if let Err(e) = file.write_all(json.as_bytes()) {
+                            error!("Failed to write to session file {:?}: {}", path, e);
+                        }
+                    }
+                    Err(e) => error!("Failed to create session file {:?}: {}", path, e),
+                },
+                Err(e) => error!("Failed to serialize session data: {}", e),
+            }
+        }
     }
 }
 
@@ -272,8 +299,21 @@ pub fn get_session() -> Option<String> {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        // TODO: Modify for native app
-        None
+        let path = get_session_path()?;
+
+        match fs::read_to_string(&path) {
+            Ok(content) => match serde_json::from_str::<StringSession>(&content) {
+                Ok(session) => Some(session.id),
+                Err(e) => {
+                    error!("Failed to deserialize session file {:?}: {}", path, e);
+                    None
+                }
+            },
+            Err(e) => {
+                error!("Failed to read session file {:?}: {}", path, e);
+                None
+            }
+        }
     }
 }
 
@@ -287,7 +327,40 @@ pub fn delete_session() {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        // TODO: Modify for native app
-        log::info!("To be implemented");
+        let path = get_session_path();
+        if let Some(path) = path {
+            if let Err(e) = fs::remove_file(&path) {
+                error!("Failed to delete session file {:?}: {}", path, e);
+            } else {
+                info!("Session file {:?} deleted successfully", path);
+            }
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_target_path() -> Option<PathBuf> {
+    if let Some(mut path) = data_local_dir() {
+        path.push("Funnel");
+        if let Err(e) = fs::create_dir_all(&path) {
+            error!("Failed to create Funnel directory {:?}: {}", path, e);
+            return None;
+        }
+        Some(path)
+    } else {
+        error!("Failed to determine local data directory.");
+        None
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn get_session_path() -> Option<PathBuf> {
+    if let Some(mut path) = data_local_dir() {
+        path.push("Funnel");
+        path.push("session.json");
+        Some(path)
+    } else {
+        error!("Failed to determine local data directory.");
+        None
     }
 }
