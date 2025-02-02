@@ -34,18 +34,22 @@ pub enum Status {
 }
 
 impl Status {
+    #[must_use]
     pub fn success(current_page: u64) -> Self {
         Self::Success { current_page }
     }
 
+    #[must_use]
     pub fn error() -> Self {
         Self::Error
     }
 
+    #[must_use]
     pub fn is_error(&self) -> bool {
         matches!(self, Status::Error)
     }
 
+    #[must_use]
     pub fn page(&self) -> u64 {
         if let Status::Success { current_page } = self {
             return *current_page;
@@ -72,6 +76,7 @@ pub struct WsResponse {
 }
 
 impl WsResponse {
+    #[must_use]
     pub fn error_unknown(message: String) -> Self {
         let fail_status = Status::error();
         Self {
@@ -80,6 +85,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn guilds(guild_data: Vec<GuildWithChannels>) -> Self {
         let status = Status::success(0);
         Self {
@@ -88,6 +94,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn connection_success(conn_id: u64) -> Self {
         let status = Status::success(0);
         Self {
@@ -96,6 +103,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn not_connected() -> Self {
         let status = Status::error();
         Self {
@@ -104,6 +112,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn failed_authentication() -> Self {
         let status = Status::error();
         Self {
@@ -112,6 +121,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn no_valid_guild() -> Self {
         let status = Status::error();
         Self {
@@ -120,6 +130,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn messages(guild_id: i64, messages: Vec<MessageWithUser>, page: u64) -> Self {
         let status = Status::success(page);
         Self {
@@ -128,6 +139,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn member_counts(guild_id: i64, counts: Vec<MemberCount>, page: u64) -> Self {
         let status = Status::success(page);
         Self {
@@ -136,6 +148,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn member_activities(guild_id: i64, activities: Vec<MemberActivity>, page: u64) -> Self {
         let status = Status::success(page);
         Self {
@@ -147,6 +160,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn user_details(user_details: UserDetails) -> Self {
         let status = Status::success(1);
         Self {
@@ -155,6 +169,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn session(id: String) -> Self {
         let status = Status::success(0);
         Self {
@@ -163,6 +178,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn failed_session_save(reason: String) -> Self {
         let status = Status::error();
         Self {
@@ -171,6 +187,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn failed_log_out(reason: String) -> Self {
         let status = Status::error();
         Self {
@@ -179,6 +196,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn logged_out() -> Self {
         let status = Status::success(0);
         Self {
@@ -187,6 +205,7 @@ impl WsResponse {
         }
     }
 
+    #[must_use]
     pub fn invalid_session() -> Self {
         let status = Status::error();
         Self {
@@ -199,14 +218,17 @@ impl WsResponse {
         serde_json::from_str(data)
     }
 
+    #[must_use]
     pub fn json(self) -> String {
         serde_json::to_string(&self).unwrap()
     }
 
+    #[must_use]
     pub fn get_error(&self) -> ErrorType {
-        match &self.response {
-            Response::Error(e_type) => e_type.clone(),
-            _ => panic!(),
+        if let Response::Error(e_type) = &self.response {
+            e_type.clone()
+        } else {
+            panic!()
         }
     }
 }

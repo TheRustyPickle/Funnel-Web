@@ -264,7 +264,6 @@ impl UserRowData {
 
 pub struct UserTable {
     /// Key: The Date where at least one message/User was found
-    /// Value: A HashMap of the founded User with their user id as the key
     /// Contains all data points and UI points are recreated from here
     user_data: HashMap<NaiveDate, HashMap<i64, HashMap<i64, UserRowData>>>,
     table: SelectableTable<UserRowData, UserColumn, Config>,
@@ -290,8 +289,8 @@ impl Default for UserTable {
             total_message: 0,
             deleted_message: 0,
             reload_count: 0,
-            channels: Default::default(),
-            selected_channels: Default::default(),
+            channels: Vec::default(),
+            selected_channels: HashSet::default(),
         }
     }
 }
@@ -429,13 +428,13 @@ impl UserTable {
         let mut selected_channels = HashSet::default();
 
         if self.selected_channels.is_empty() {
-            for channel in self.channels.iter() {
+            for channel in &self.channels {
                 selected_channels.insert(channel.channel_id);
             }
         } else {
-            for index in self.selected_channels.iter() {
+            for index in &self.selected_channels {
                 if index == &0_usize {
-                    for channel in self.channels.iter() {
+                    for channel in &self.channels {
                         selected_channels.insert(channel.channel_id);
                     }
                     break;
@@ -524,6 +523,6 @@ impl TabHandler {
         self.user_table
             .get_mut(&guild_id)
             .unwrap()
-            .handle_message(message, event_bus)
+            .handle_message(message, event_bus);
     }
 }

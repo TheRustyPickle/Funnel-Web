@@ -386,7 +386,7 @@ impl TabHandler {
         self.channel_table
             .get_mut(&guild_id)
             .unwrap()
-            .handle_message(message, event_bus)
+            .handle_message(message, event_bus);
     }
 
     pub fn channel_table_recreate_rows(&mut self, guild_id: i64) {
@@ -397,6 +397,6 @@ impl TabHandler {
         self.channel_table
             .get_mut(&guild_id)
             .unwrap()
-            .set_channel_id_map(channels)
+            .set_channel_id_map(channels);
     }
 }

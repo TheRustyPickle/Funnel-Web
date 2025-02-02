@@ -49,7 +49,7 @@ impl MainWindow {
                                 self.send_ws(reply);
                             };
                         } else {
-                            let message_text = format!("{:?}", message);
+                            let message_text = format!("{message:?}");
                             if !message_text.starts_with("Ping") {
                                 error!("Unknown response gotten from server: {message:#?}");
                             }

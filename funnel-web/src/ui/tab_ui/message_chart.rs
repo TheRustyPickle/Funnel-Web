@@ -26,7 +26,6 @@ pub struct MessageChart {
     chart_data: BTreeMap<String, IndexMap<NaiveDateTime, i64>>,
     chart_values: BTreeMap<String, bool>,
     chart_labels: Vec<Vec<(String, String)>>,
-    /// Timestamp key with value HashMap with key channel id and value as data point
     hourly_data: BTreeMap<NaiveDateTime, HashMap<i64, Vec<ChartPointData>>>,
     daily_data: BTreeMap<NaiveDateTime, HashMap<i64, Vec<ChartPointData>>>,
     weekly_data: BTreeMap<NaiveDateTime, HashMap<i64, Vec<ChartPointData>>>,
@@ -67,11 +66,11 @@ impl Default for MessageChart {
             last_day: None,
             last_week: None,
             last_month: None,
-            date_handler: Default::default(),
+            date_handler: DateHandler::default(),
             reload_count: 0,
             open_modal: false,
-            channels: Default::default(),
-            selected_channels: Default::default(),
+            channels: Vec::default(),
+            selected_channels: HashSet::default(),
         }
     }
 }
@@ -275,7 +274,7 @@ impl MessageChart {
         }
 
         if !self.open_modal {
-            for (key, val) in self.chart_values.clone().into_iter() {
+            for (key, val) in self.chart_values.clone() {
                 if val {
                     self.chart_data.entry(key).or_default();
                 } else {
@@ -420,7 +419,7 @@ impl MessageChart {
                     user: username.clone(),
                     count: 1,
                     deleted: false,
-                })
+                });
             }
         }
 
@@ -448,7 +447,7 @@ impl MessageChart {
                     user: username.clone(),
                     count: 1,
                     deleted: false,
-                })
+                });
             }
         }
 
@@ -476,7 +475,7 @@ impl MessageChart {
                     user: username.clone(),
                     count: 1,
                     deleted: false,
-                })
+                });
             }
         }
 
@@ -504,7 +503,7 @@ impl MessageChart {
                     user: username.clone(),
                     count: 1,
                     deleted: false,
-                })
+                });
             }
         }
 
@@ -522,13 +521,13 @@ impl MessageChart {
         let mut selected_channels = HashSet::default();
 
         if self.selected_channels.is_empty() {
-            for channel in self.channels.iter() {
+            for channel in &self.channels {
                 selected_channels.insert(channel.channel_id);
             }
         } else {
-            for index in self.selected_channels.iter() {
+            for index in &self.selected_channels {
                 if index == &0_usize {
-                    for channel in self.channels.iter() {
+                    for channel in &self.channels {
                         selected_channels.insert(channel.channel_id);
                     }
                     break;
@@ -551,7 +550,7 @@ impl MessageChart {
             let mut deleted_message: i64 = 0;
             let mut other_messages: HashMap<String, u32> = HashMap::new();
 
-            for val in target_values.iter() {
+            for val in &target_values {
                 if val == "All Messages" || val == "Deleted Messages" {
                     continue;
                 }
@@ -562,9 +561,9 @@ impl MessageChart {
                 if selected_channels.contains(channel) {
                     for point in points {
                         if point.deleted && do_deleted_message {
-                            deleted_message += point.count as i64;
+                            deleted_message += i64::from(point.count);
                         } else if !point.deleted && do_total_message {
-                            total_message += point.count as i64;
+                            total_message += i64::from(point.count);
                         }
 
                         if target_values.contains(&point.user) {
@@ -589,7 +588,7 @@ impl MessageChart {
 
             for (user, count) in other_messages {
                 let entry = final_data.entry(user).or_default();
-                entry.insert(*date, count as i64);
+                entry.insert(*date, i64::from(count));
             }
         }
         self.chart_data = final_data;
@@ -617,7 +616,7 @@ impl TabHandler {
         self.message_chart
             .get_mut(&guild_id)
             .unwrap()
-            .handle_message(message, event_bus)
+            .handle_message(message, event_bus);
     }
 
     pub fn reload_message_chart(&mut self, guild_id: i64) {

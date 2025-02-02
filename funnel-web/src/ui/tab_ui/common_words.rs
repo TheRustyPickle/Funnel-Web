@@ -144,8 +144,8 @@ impl Default for WordTable {
             reload_count: 0,
             window_size: 1,
             stripped_contents: HashMap::new(),
-            channels: Default::default(),
-            selected_channels: Default::default(),
+            channels: Vec::default(),
+            selected_channels: HashSet::default(),
         }
     }
 }
@@ -225,13 +225,13 @@ impl WordTable {
         let mut selected_channels = HashSet::default();
 
         if self.selected_channels.is_empty() {
-            for channel in self.channels.iter() {
+            for channel in &self.channels {
                 selected_channels.insert(channel.channel_id);
             }
         } else {
-            for index in self.selected_channels.iter() {
+            for index in &self.selected_channels {
                 if index == &0_usize {
-                    for channel in self.channels.iter() {
+                    for channel in &self.channels {
                         selected_channels.insert(channel.channel_id);
                     }
                     break;
@@ -255,7 +255,7 @@ impl WordTable {
 
                 for content in content_list {
                     let split_stripped_content: Vec<&str> =
-                        content.split(" ").filter(|s| !s.is_empty()).collect();
+                        content.split(' ').filter(|s| !s.is_empty()).collect();
                     if split_stripped_content.len() < self.window_size {
                         continue;
                     }
@@ -301,7 +301,7 @@ impl TabHandler {
         self.word_table
             .get_mut(&guild_id)
             .unwrap()
-            .handle_message(message, event_bus)
+            .handle_message(message, event_bus);
     }
 
     pub fn word_table_recreate_rows(&mut self, guild_id: i64) {

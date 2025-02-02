@@ -38,7 +38,7 @@ pub struct TabHandler {
 
 impl TabHandler {
     pub fn show_tab_ui(&mut self, ui: &mut Ui, state: TabState, event_bus: &mut EventBus) {
-        self.process_pending_reloads(&state);
+        self.process_pending_reloads(state);
         let mut show_ui = |data: Option<&mut dyn ShowUI>| {
             if let Some(item) = data {
                 item.show_ui(ui, self.current_guild, event_bus);
@@ -160,7 +160,7 @@ impl TabHandler {
             .set_channels(channels);
     }
 
-    pub fn set_selected_channels(&mut self, selected: HashSet<usize>) {
+    pub fn set_selected_channels(&mut self, selected: &HashSet<usize>) {
         self.overview
             .get_mut(&self.current_guild)
             .unwrap()
@@ -183,7 +183,7 @@ impl TabHandler {
             .set_selected_channels(selected.clone());
     }
 
-    pub fn process_pending_reloads(&mut self, state: &TabState) {
+    pub fn process_pending_reloads(&mut self, state: TabState) {
         let mut to_remove_indices = Vec::new();
 
         for (index, pending_reload) in self.pending_reloads.clone().iter().enumerate() {
@@ -192,42 +192,42 @@ impl TabHandler {
             }
             match pending_reload.reload_type {
                 ReloadTab::Overview(guild_id) => {
-                    if TabState::Overview == *state && guild_id == self.current_guild {
+                    if TabState::Overview == state && guild_id == self.current_guild {
                         info!("Reloading Overview for {guild_id}");
                         self.reload_overview(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
                 ReloadTab::UserTable(guild_id) => {
-                    if TabState::UserTable == *state && guild_id == self.current_guild {
+                    if TabState::UserTable == state && guild_id == self.current_guild {
                         info!("Reloading User Table for {guild_id}");
                         self.user_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
                 ReloadTab::ChannelTable(guild_id) => {
-                    if TabState::ChannelTable == *state && guild_id == self.current_guild {
+                    if TabState::ChannelTable == state && guild_id == self.current_guild {
                         info!("Reloading Channel Table for {guild_id}");
                         self.channel_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
                 ReloadTab::MessageChart(guild_id) => {
-                    if TabState::MessageChart == *state && guild_id == self.current_guild {
+                    if TabState::MessageChart == state && guild_id == self.current_guild {
                         info!("Reloading Message Chart for {guild_id}");
                         self.reload_message_chart(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
                 ReloadTab::UserChart(guild_id) => {
-                    if TabState::UserChart == *state && guild_id == self.current_guild {
+                    if TabState::UserChart == state && guild_id == self.current_guild {
                         info!("Reloading User Chart for {guild_id}");
                         self.reload_user_chart(pending_reload.guild_id);
                         to_remove_indices.push(index);
                     }
                 }
                 ReloadTab::WordTable(guild_id) => {
-                    if TabState::CommonWords == *state && guild_id == self.current_guild {
+                    if TabState::CommonWords == state && guild_id == self.current_guild {
                         info!("Reloading Word Table for {guild_id}");
                         self.word_table_recreate_rows(pending_reload.guild_id);
                         to_remove_indices.push(index);
@@ -244,22 +244,22 @@ impl TabHandler {
 
     pub fn clear_key_data(&mut self, key: i64) {
         if self.overview.contains_key(&key) {
-            self.overview.insert(key, Default::default());
+            self.overview.insert(key, Overview::default());
         }
         if self.user_table.contains_key(&key) {
-            self.user_table.insert(key, Default::default());
+            self.user_table.insert(key, UserTable::default());
         }
         if self.channel_table.contains_key(&key) {
-            self.channel_table.insert(key, Default::default());
+            self.channel_table.insert(key, ChannelTable::default());
         }
         if self.message_chart.contains_key(&key) {
-            self.message_chart.insert(key, Default::default());
+            self.message_chart.insert(key, MessageChart::default());
         }
         if self.user_chart.contains_key(&key) {
-            self.user_chart.insert(key, Default::default());
+            self.user_chart.insert(key, UserChart::default());
         }
         if self.word_table.contains_key(&key) {
-            self.word_table.insert(key, Default::default());
+            self.word_table.insert(key, WordTable::default());
         }
     }
 }

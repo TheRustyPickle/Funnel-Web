@@ -183,10 +183,9 @@ impl PanelStatus {
                         for (index, guild) in self.guild_channels.iter().enumerate() {
                             let guild_name = &guild.guild.guild_name;
                             let guild_image = if guild.guild.guild_icon.is_none() {
-                                let modified_name = guild_name.replace(" ", "%20");
+                                let modified_name = guild_name.replace(' ', "%20");
                                 format!(
-                                    "https://api.dicebear.com/9.x/initials/png?seed={}",
-                                    modified_name
+                                    "https://api.dicebear.com/9.x/initials/png?seed={modified_name}"
                                 )
                             } else {
                                 guild.guild.guild_icon.clone().unwrap()
@@ -373,7 +372,7 @@ impl PanelStatus {
                                                 );
                                             }
                                         }
-                                        event_bus.publish(AppEvent::SelectedChannelsChanged)
+                                        event_bus.publish(AppEvent::SelectedChannelsChanged);
                                     }
                                 }
                             },
@@ -395,7 +394,7 @@ impl PanelStatus {
                     if show_spinner {
                         status_text.push_str(".".repeat(self.dot_count).as_ref());
                     }
-                    ui.label(format!("Status: {}", status_text));
+                    ui.label(format!("Status: {status_text}"));
 
                     if show_spinner {
                         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -413,7 +412,7 @@ impl PanelStatus {
 
     pub fn next_dot(&mut self) {
         if self.dot_count == 3 {
-            self.dot_count = 0
+            self.dot_count = 0;
         } else {
             self.dot_count += 1;
         }
@@ -508,7 +507,7 @@ impl MainWindow {
             if self.panels.theme_animator.anim_id.is_none() {
                 self.panels.theme_animator.create_id(ui);
             } else {
-                self.panels.theme_animator.animate(ctx)
+                self.panels.theme_animator.animate(ctx);
             };
 
             if !self.connection.connected() {

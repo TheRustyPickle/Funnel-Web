@@ -33,7 +33,7 @@ pub fn handle_ws_message(
                     window.send_ws(Request::session(token));
                 } else {
                     info!("Opening auth url in a new tab");
-                    let full_url = format!("{LOGIN_URL}&state={}", conn_id);
+                    let full_url = format!("{LOGIN_URL}&state={conn_id}");
 
                     let open_url = OpenUrl {
                         url: full_url,

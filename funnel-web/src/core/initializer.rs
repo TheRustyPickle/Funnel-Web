@@ -33,6 +33,7 @@ impl App for MainWindow {
 }
 
 impl MainWindow {
+    #[must_use]
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         cc.egui_ctx.set_pixels_per_point(1.1);
         cc.egui_ctx.set_theme(ThemePreference::Light);
@@ -123,6 +124,7 @@ impl MainWindow {
         }
     }
 
+    #[must_use]
     pub fn has_channels(&self) -> bool {
         self.ws_sender.is_some() && self.ws_receiver.is_some()
     }

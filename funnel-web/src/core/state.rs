@@ -18,10 +18,12 @@ pub enum TabState {
 }
 
 impl TabState {
+    #[must_use]
     pub fn last_value() -> Self {
         TabState::CommonWords
     }
 
+    #[must_use]
     pub fn first_value() -> Self {
         TabState::default()
     }
@@ -88,6 +90,7 @@ pub enum AppStatus {
 }
 
 impl AppStatus {
+    #[must_use]
     pub fn show_spinner(&self) -> bool {
         match self {
             AppStatus::ConnectingToWs

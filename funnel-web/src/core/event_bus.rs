@@ -78,13 +78,13 @@ impl MainWindow {
                     self.tabs.set_channels(guild_channels);
 
                     let selected_channels = self.panels.current_selected_channels();
-                    self.tabs.set_selected_channels(selected_channels);
+                    self.tabs.set_selected_channels(&selected_channels);
 
                     self.fetch_guild_data();
                 }
                 AppEvent::StopCompareOverview => {
                     let guild_id = self.panels.selected_guild();
-                    self.tabs.stop_compare_overview(guild_id)
+                    self.tabs.stop_compare_overview(guild_id);
                 }
                 AppEvent::OverviewNeedsReload(guild_id) => {
                     self.tabs
@@ -119,7 +119,7 @@ impl MainWindow {
                 AppEvent::SelectedChannelsChanged => {
                     let current_guild = self.panels.selected_guild();
                     let selected_channels = self.panels.current_selected_channels();
-                    self.tabs.set_selected_channels(selected_channels);
+                    self.tabs.set_selected_channels(&selected_channels);
 
                     self.event_bus
                         .publish_if_needed(AppEvent::OverviewNeedsReload(current_guild));
