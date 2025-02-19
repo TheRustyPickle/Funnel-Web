@@ -432,7 +432,7 @@ impl Overview {
 
         Plot::new("member_count")
             .legend(Legend::default().background_alpha(0.0))
-            .auto_bounds([true; 2].into())
+            .auto_bounds([true; 2])
             .custom_x_axes(vec![x_axis])
             .clamp_grid(true)
             .label_formatter(hover_label)

@@ -105,7 +105,7 @@ impl Connection {
                 .on_hover_text("Copy the bot invite link to clipboard")
                 .clicked()
             {
-                ui.output_mut(|o| o.copied_text = text_edit_text);
+                ui.ctx().copy_text(text_edit_text);
             }
             let consumed = max_width - ui.available_width();
             self.space_taken = consumed;
@@ -122,7 +122,6 @@ impl Connection {
         self.add_info_text(ui);
 
         TopBottomPanel::bottom("change_log")
-            .show_separator_line(false)
             .min_height(300.0)
             .max_height(300.0)
             .show_inside(ui, |ui| {

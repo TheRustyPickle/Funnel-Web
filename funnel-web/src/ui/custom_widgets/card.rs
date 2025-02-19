@@ -1,4 +1,4 @@
-use eframe::egui::{Align2, Response, Sense, TextStyle, Ui, Vec2, Widget, WidgetText};
+use eframe::egui::{Align2, Response, Sense, StrokeKind, TextStyle, Ui, Vec2, Widget, WidgetText};
 
 pub struct Card {
     header: WidgetText,
@@ -53,8 +53,13 @@ impl Widget for Card {
         );
 
         let rounding = 10.0;
-        ui.painter()
-            .rect(rect, rounding, visuals.weak_bg_fill, visuals.bg_stroke);
+        ui.painter().rect(
+            rect,
+            rounding,
+            visuals.weak_bg_fill,
+            visuals.bg_stroke,
+            StrokeKind::Inside,
+        );
 
         let header_pos = Align2::CENTER_TOP
             .align_size_within_rect(header_galley.size(), rect.shrink2(header_padding))

@@ -1,7 +1,7 @@
 use chrono::NaiveDate;
 use eframe::egui::ahash::{HashMap, HashSet, HashSetExt};
 use eframe::egui::{
-    menu, Align, CentralPanel, Context, Image, ImageButton, Layout, Rounding, ScrollArea,
+    menu, Align, CentralPanel, Context, CornerRadius, Image, ImageButton, Layout, ScrollArea,
     SidePanel, Spinner, TopBottomPanel, Visuals,
 };
 use egui_theme_lerp::ThemeAnimator;
@@ -56,114 +56,110 @@ impl Default for PanelStatus {
 
 impl PanelStatus {
     fn show_upper_bar(&mut self, ctx: &Context, connected: bool, event_bus: &mut EventBus) {
-        TopBottomPanel::top("upper_bar")
-            .show_separator_line(false)
-            .show(ctx, |ui| {
-                ui.add_space(4.0);
-                menu::bar(ui, |ui| {
-                    let theme_emoji = if !self.theme_animator.animation_done {
-                        if self.theme_animator.theme_1_to_2 {
-                            "☀"
-                        } else {
-                            "🌙"
-                        }
-                    } else if self.theme_animator.theme_1_to_2 {
-                        "🌙"
-                    } else {
+        TopBottomPanel::top("upper_bar").show(ctx, |ui| {
+            ui.add_space(4.0);
+            menu::bar(ui, |ui| {
+                let theme_emoji = if !self.theme_animator.animation_done {
+                    if self.theme_animator.theme_1_to_2 {
                         "☀"
-                    };
-                    if ui.button(theme_emoji).clicked() {
-                        self.theme_animator.start();
+                    } else {
+                        "🌙"
                     }
+                } else if self.theme_animator.theme_1_to_2 {
+                    "🌙"
+                } else {
+                    "☀"
+                };
+                if ui.button(theme_emoji).clicked() {
+                    self.theme_animator.start();
+                }
 
-                    ui.set_style(ctx.style());
+                ui.set_style(ctx.style());
+                ui.separator();
+                if ui
+                    .selectable_label(self.show_guild, "Guild List")
+                    .on_hover_text("Show/Hide Guild List")
+                    .clicked()
+                {
+                    self.show_guild = !self.show_guild;
+                };
+                ui.separator();
+                if ui
+                    .selectable_label(self.show_channel, "Channel List")
+                    .on_hover_text("Show/Hide Channel List")
+                    .clicked()
+                {
+                    self.show_channel = !self.show_channel;
+                };
+                ui.separator();
+                self.date_nav[self.selected_guild].show_ui(ui, connected, event_bus);
+
+                if let Some(details) = self.user_details.as_ref() {
                     ui.separator();
                     if ui
-                        .selectable_label(self.show_guild, "Guild List")
-                        .on_hover_text("Show/Hide Guild List")
+                        .button("Log Out")
+                        .on_hover_text("Log Out from the current discord")
                         .clicked()
                     {
-                        self.show_guild = !self.show_guild;
+                        event_bus.publish(AppEvent::LogOut);
                     };
                     ui.separator();
-                    if ui
-                        .selectable_label(self.show_channel, "Channel List")
-                        .on_hover_text("Show/Hide Channel List")
-                        .clicked()
-                    {
-                        self.show_channel = !self.show_channel;
-                    };
-                    ui.separator();
-                    self.date_nav[self.selected_guild].show_ui(ui, connected, event_bus);
-
-                    if let Some(details) = self.user_details.as_ref() {
-                        ui.separator();
-                        if ui
-                            .button("Log Out")
-                            .on_hover_text("Log Out from the current discord")
-                            .clicked()
-                        {
-                            event_bus.publish(AppEvent::LogOut);
-                        };
-                        ui.separator();
-                        ui.add(Image::new(details.avatar_link()).rounding(15.0));
-                        ui.label(details.full_username());
-                    }
-                });
-
-                ui.add_space(0.5);
+                    ui.add(Image::new(details.avatar_link()).corner_radius(15.0));
+                    ui.label(details.full_username());
+                }
             });
+
+            ui.add_space(0.5);
+        });
     }
 
     fn show_top_bar(&mut self, ctx: &Context) {
-        TopBottomPanel::top("top_panel")
-            .show_separator_line(false)
-            .show(ctx, |ui| {
-                ui.add_space(3.0);
-                menu::bar(ui, |ui| {
-                    ui.set_style(ctx.style());
+        TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            ui.add_space(3.0);
+            menu::bar(ui, |ui| {
+                ui.set_style(ctx.style());
 
-                    let space_anim = ui.make_persistent_id("top_spacing_anim");
-                    if self.top_button_size != 0.0 {
-                        let max_size = ui.available_width();
-                        let remaining = max_size - self.top_button_size;
-                        let remaining = ui.painter().round_to_pixel_center(remaining);
-                        let space_amount =
-                            ui.ctx()
-                                .animate_value_with_time(space_anim, remaining / 2.0, 0.5);
-                        ui.add_space(space_amount);
-                    } else {
-                        ui.ctx().animate_value_with_time(space_anim, 0.0, 0.0);
+                let space_anim = ui.make_persistent_id("top_spacing_anim");
+                if self.top_button_size != 0.0 {
+                    let max_size = ui.available_width();
+                    let remaining = max_size - self.top_button_size;
+                    let remaining = ui.painter().round_to_pixel_center(remaining);
+                    let space_amount =
+                        ui.ctx()
+                            .animate_value_with_time(space_anim, remaining / 2.0, 0.5);
+                    ui.add_space(space_amount);
+                } else {
+                    ui.ctx().animate_value_with_time(space_anim, 0.0, 0.0);
+                }
+                let hover_position = ui.make_persistent_id("menu_hover");
+                let selected_position = ui.make_persistent_id("menu_selected");
+                let max_width = ui.available_width();
+                for val in TabState::iter() {
+                    let val_string = val.to_string();
+                    let selected = self.tab_state == val;
+
+                    let first_value = val == TabState::first_value();
+
+                    let resp = ui.add(AnimatedMenuLabel::new(
+                        selected,
+                        val_string,
+                        selected_position,
+                        hover_position,
+                        110.0,
+                        18.0,
+                        Some(CornerRadius::ZERO),
+                        (first_value, true),
+                    ));
+
+                    if resp.clicked() {
+                        self.tab_state = val;
                     }
-                    let hover_position = ui.make_persistent_id("menu_hover");
-                    let selected_position = ui.make_persistent_id("menu_selected");
-                    let max_width = ui.available_width();
-                    for val in TabState::iter() {
-                        let val_string = val.to_string();
-                        let selected = self.tab_state == val;
-
-                        let first_value = val == TabState::first_value();
-
-                        let resp = ui.add(AnimatedMenuLabel::new(
-                            selected,
-                            val_string,
-                            selected_position,
-                            hover_position,
-                            100.0,
-                            18.0,
-                            Some(Rounding::ZERO),
-                            (first_value, true),
-                        ));
-
-                        if resp.clicked() {
-                            self.tab_state = val;
-                        }
-                    }
-                    let space_taken = max_width - ui.available_width();
-                    self.top_button_size = space_taken;
-                });
-                ui.add_space(3.0);
+                }
+                let space_taken = max_width - ui.available_width();
+                self.top_button_size = space_taken;
             });
+            ui.add_space(3.0);
+        });
     }
 
     fn show_left_bar(&mut self, ctx: &Context, event_bus: &mut EventBus) {
@@ -218,7 +214,7 @@ impl PanelStatus {
                                 .add(
                                     ImageButton::new(Image::from_uri(guild_image))
                                         .selected(selected)
-                                        .rounding(rounding),
+                                        .corner_radius(rounding),
                                 )
                                 .on_hover_text(guild_name);
 
@@ -383,27 +379,25 @@ impl PanelStatus {
     }
 
     pub fn show_bottom_bar(&mut self, ctx: &Context) {
-        TopBottomPanel::bottom("bottom_panel")
-            .show_separator_line(false)
-            .show(ctx, |ui| {
-                ui.add_space(4.0);
-                ui.horizontal(|ui| {
-                    let show_spinner = self.app_status.show_spinner();
+        TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+            ui.add_space(4.0);
+            ui.horizontal(|ui| {
+                let show_spinner = self.app_status.show_spinner();
 
-                    let mut status_text = self.app_status.to_string();
-                    if show_spinner {
-                        status_text.push_str(".".repeat(self.dot_count).as_ref());
-                    }
-                    ui.label(format!("Status: {status_text}"));
+                let mut status_text = self.app_status.to_string();
+                if show_spinner {
+                    status_text.push_str(".".repeat(self.dot_count).as_ref());
+                }
+                ui.label(format!("Status: {status_text}"));
 
-                    if show_spinner {
-                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                            ui.add(Spinner::new());
-                        });
-                    }
-                });
-                ui.add_space(0.5);
+                if show_spinner {
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        ui.add(Spinner::new());
+                    });
+                }
             });
+            ui.add_space(0.5);
+        });
     }
 
     pub fn set_app_status(&mut self, status: AppStatus) {
