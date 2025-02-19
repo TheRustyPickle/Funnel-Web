@@ -1,10 +1,6 @@
 use eframe::egui::{Context, FontData, FontDefinitions, FontFamily, Id, RichText, Ui};
-use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use std::fs;
-use std::io::Write;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
@@ -12,6 +8,14 @@ use web_sys::window;
 
 #[cfg(not(target_arch = "wasm32"))]
 use dirs::data_local_dir;
+#[cfg(not(target_arch = "wasm32"))]
+use log::{error, info};
+#[cfg(not(target_arch = "wasm32"))]
+use std::fs;
+#[cfg(not(target_arch = "wasm32"))]
+use std::io::Write;
+#[cfg(not(target_arch = "wasm32"))]
+use std::path::PathBuf;
 
 use crate::core::{CHANGE, JET};
 use crate::ui::Card;

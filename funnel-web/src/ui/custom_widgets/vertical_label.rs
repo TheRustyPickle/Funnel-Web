@@ -1,5 +1,6 @@
 use eframe::egui::{
-    Id, LayerId, Order, Response, Sense, TextStyle, Ui, Widget, WidgetInfo, WidgetText, WidgetType,
+    Id, LayerId, Order, Response, Sense, StrokeKind, TextStyle, Ui, Widget, WidgetInfo, WidgetText,
+    WidgetType,
 };
 
 pub struct AnimatedLabel {
@@ -100,9 +101,10 @@ impl Widget for AnimatedLabel {
 
                 ui.painter().rect(
                     background_rect,
-                    visuals.rounding,
+                    visuals.corner_radius,
                     visuals.weak_bg_fill,
                     visuals.bg_stroke,
+                    StrokeKind::Inside,
                 );
             }
 
@@ -118,9 +120,10 @@ impl Widget for AnimatedLabel {
 
                 ui.painter().rect(
                     background_rect,
-                    visuals.rounding,
+                    visuals.corner_radius,
                     visuals.weak_bg_fill,
                     visuals.bg_stroke,
+                    StrokeKind::Inside,
                 );
             }
 

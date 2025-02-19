@@ -5,7 +5,7 @@ use chrono::{
     DateTime, Datelike, Duration, Local, Months, NaiveDate, NaiveDateTime, Timelike, Weekday,
 };
 use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
-use eframe::egui::{Button, CentralPanel, Id, Modal, ScrollArea, TopBottomPanel, Ui};
+use eframe::egui::{CentralPanel, Id, Modal, ScrollArea, TopBottomPanel, Ui};
 use egui_plot::{AxisHints, GridMark, Legend, Line, Plot, PlotPoint, PlotPoints};
 use funnel_shared::{Channel, MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
@@ -224,7 +224,7 @@ impl ShowUI for MessageChart {
         };
         Plot::new("message_chart")
             .legend(Legend::default().background_alpha(0.0))
-            .auto_bounds([true; 2].into())
+            .auto_bounds([true; 2])
             .custom_x_axes(vec![x_axis])
             .clamp_grid(true)
             .label_formatter(hover_label)
@@ -248,12 +248,12 @@ impl MessageChart {
             });
 
             TopBottomPanel::bottom(Id::new("customize_bottom_view")).show_inside(ui, |ui| {
-                if ui
-                    .add_sized([300.0, 12.0], Button::new("Confirm"))
-                    .clicked()
-                {
-                    self.open_modal = false;
-                }
+                ui.add_space(5.0);
+                ui.vertical_centered_justified(|ui| {
+                    if ui.button("Confirm").clicked() {
+                        self.open_modal = false;
+                    }
+                })
             });
 
             CentralPanel::default().show_inside(ui, |ui| {
