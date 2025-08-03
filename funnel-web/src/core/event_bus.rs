@@ -40,7 +40,15 @@ impl MainWindow {
                     self.tabs.compare_overview(guild_id);
                 }
                 AppEvent::StartWebsocket => {
-                    if !self.has_channels() {
+                    if self.has_channels() {
+                        info!("websocket connection already exists. Not creating a new one");
+                        let no_login = self.connection.no_login();
+                        if no_login {
+                            self.send_ws(Request::start_no_login());
+                        } else {
+                            self.send_ws(Request::start());
+                        }
+                    } else {
                         info!("Starting connection to the websocket");
                         self.panels.set_app_status(AppStatus::ConnectingToWs);
                         let options = Options::default();
@@ -54,14 +62,6 @@ impl MainWindow {
                                 self.connection.failed_connection();
                                 self.panels.set_app_status(AppStatus::FailedWs(e));
                             }
-                        }
-                    } else {
-                        info!("websocket connection already exists. Not creating a new one");
-                        let no_login = self.connection.no_login();
-                        if no_login {
-                            self.send_ws(Request::start_no_login());
-                        } else {
-                            self.send_ws(Request::start());
                         }
                     }
                 }

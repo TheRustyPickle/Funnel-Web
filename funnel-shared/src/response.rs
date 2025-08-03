@@ -66,7 +66,7 @@ pub enum ErrorType {
     FailedSaveSession(String),
     FailedLogOut(String),
     InvalidSession,
-    UnknowError(String),
+    UnknownError(String),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -81,7 +81,7 @@ impl WsResponse {
         let fail_status = Status::error();
         Self {
             status: fail_status,
-            response: Response::Error(ErrorType::UnknowError(message)),
+            response: Response::Error(ErrorType::UnknownError(message)),
         }
     }
 

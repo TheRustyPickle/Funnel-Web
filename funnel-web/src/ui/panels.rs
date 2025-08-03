@@ -1,7 +1,8 @@
 use chrono::NaiveDate;
 use eframe::egui::ahash::{HashMap, HashSet, HashSetExt};
+use eframe::egui::scroll_area::ScrollSource;
 use eframe::egui::{
-    menu, Align, CentralPanel, Context, CornerRadius, Image, ImageButton, Layout, ScrollArea,
+    Align, CentralPanel, Context, CornerRadius, Image, ImageButton, Layout, MenuBar, ScrollArea,
     SidePanel, Spinner, TopBottomPanel, Visuals,
 };
 use egui_theme_lerp::ThemeAnimator;
@@ -58,7 +59,7 @@ impl PanelStatus {
     fn show_upper_bar(&mut self, ctx: &Context, connected: bool, event_bus: &mut EventBus) {
         TopBottomPanel::top("upper_bar").show(ctx, |ui| {
             ui.add_space(4.0);
-            menu::bar(ui, |ui| {
+            MenuBar::new().ui(ui, |ui| {
                 let theme_emoji = if !self.theme_animator.animation_done {
                     if self.theme_animator.theme_1_to_2 {
                         "☀"
@@ -82,7 +83,7 @@ impl PanelStatus {
                     .clicked()
                 {
                     self.show_guild = !self.show_guild;
-                };
+                }
                 ui.separator();
                 if ui
                     .selectable_label(self.show_channel, "Channel List")
@@ -90,7 +91,7 @@ impl PanelStatus {
                     .clicked()
                 {
                     self.show_channel = !self.show_channel;
-                };
+                }
                 ui.separator();
                 self.date_nav[self.selected_guild].show_ui(ui, connected, event_bus);
 
@@ -102,7 +103,7 @@ impl PanelStatus {
                         .clicked()
                     {
                         event_bus.publish(AppEvent::LogOut);
-                    };
+                    }
                     ui.separator();
                     ui.add(Image::new(details.avatar_link()).corner_radius(15.0));
                     ui.label(details.full_username());
@@ -116,11 +117,13 @@ impl PanelStatus {
     fn show_top_bar(&mut self, ctx: &Context) {
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.add_space(3.0);
-            menu::bar(ui, |ui| {
+            MenuBar::new().ui(ui, |ui| {
                 ui.set_style(ctx.style());
 
                 let space_anim = ui.make_persistent_id("top_spacing_anim");
-                if self.top_button_size != 0.0 {
+                if self.top_button_size == 0.0 {
+                    ui.ctx().animate_value_with_time(space_anim, 0.0, 0.0);
+                } else {
                     let max_size = ui.available_width();
                     let remaining = max_size - self.top_button_size;
                     let remaining = ui.painter().round_to_pixel_center(remaining);
@@ -128,8 +131,6 @@ impl PanelStatus {
                         ui.ctx()
                             .animate_value_with_time(space_anim, remaining / 2.0, 0.5);
                     ui.add_space(space_amount);
-                } else {
-                    ui.ctx().animate_value_with_time(space_anim, 0.0, 0.0);
                 }
                 let hover_position = ui.make_persistent_id("menu_hover");
                 let selected_position = ui.make_persistent_id("menu_selected");
@@ -198,11 +199,7 @@ impl PanelStatus {
                             let target_rounding = if selected {
                                 25.0
                             } else if let Some(id) = self.hovered_guild {
-                                if id == index {
-                                    20.0
-                                } else {
-                                    10.0
-                                }
+                                if id == index { 20.0 } else { 10.0 }
                             } else {
                                 10.0
                             };
@@ -243,138 +240,154 @@ impl PanelStatus {
             .default_width(120.0)
             .max_width(200.0)
             .show_animated(ctx, self.show_channel, |ui| {
-                ScrollArea::vertical().drag_to_scroll(false).show(ui, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.add_space(5.0);
-                        ui.label("Channel List");
-                        ui.separator();
-                    });
-                    if !self.guild_channels.is_empty() {
-                        ui.with_layout(
-                            Layout::top_down(Align::Min).with_cross_justify(true),
-                            |ui| {
-                                let selected_guild = self.selected_guild;
-                                let channel_list = &self.guild_channels[selected_guild].channels;
+                let scroll_source = ScrollSource {
+                    drag: false,
+                    scroll_bar: true,
+                    mouse_wheel: true,
+                };
 
-                                let mut channel_name_list = vec!["All Channels"];
+                ScrollArea::vertical()
+                    .scroll_source(scroll_source)
+                    .show(ui, |ui| {
+                        ui.vertical_centered(|ui| {
+                            ui.add_space(5.0);
+                            ui.label("Channel List");
+                            ui.separator();
+                        });
+                        if !self.guild_channels.is_empty() {
+                            ui.with_layout(
+                                Layout::top_down(Align::Min).with_cross_justify(true),
+                                |ui| {
+                                    let selected_guild = self.selected_guild;
+                                    let channel_list =
+                                        &self.guild_channels[selected_guild].channels;
 
-                                for ch in channel_list {
-                                    channel_name_list.push(&ch.channel_name);
-                                }
+                                    let mut channel_name_list = vec!["All Channels"];
 
-                                let space_id = ui.make_persistent_id("space_id");
-
-                                if self.guild_changed {
-                                    ui.ctx().animate_value_with_time(space_id, 10.0, 0.0);
-                                }
-                                let spacing = ui.ctx().animate_value_with_time(space_id, 0.0, 0.5);
-
-                                let reset_label = if self.guild_changed {
-                                    self.guild_changed = false;
-                                    true
-                                } else {
-                                    false
-                                };
-
-                                // The id where value of the current hover position is saved
-                                let hover_position = ui.make_persistent_id("channel_hover_anim");
-
-                                for (index, channel_name) in channel_name_list.iter().enumerate() {
-                                    // The selection UI position, animate toward the current
-                                    // position from either the top or the bottom
-                                    let selection_position =
-                                        ui.make_persistent_id("channel_selection_anim").with(index);
-
-                                    ui.add_space(spacing);
-
-                                    let channel_selected =
-                                        self.selected_channel[self.selected_guild].contains(&index);
-
-                                    // The text position. Animate from the current position from
-                                    // either the top or the bottom
-                                    let text_position =
-                                        ui.make_persistent_id("text_position_anim").with(index);
-
-                                    let resp = ui.add(AnimatedLabel::new(
-                                        channel_selected,
-                                        *channel_name,
-                                        text_position,
-                                        selection_position,
-                                        hover_position,
-                                    ));
-
-                                    if reset_label {
-                                        ui.ctx().animate_value_with_time(
-                                            selection_position,
-                                            ui.max_rect().top(),
-                                            0.0,
-                                        );
-                                        ui.ctx().animate_value_with_time(
-                                            text_position,
-                                            ui.max_rect().top(),
-                                            0.0,
-                                        );
+                                    for ch in channel_list {
+                                        channel_name_list.push(&ch.channel_name);
                                     }
 
-                                    if resp.clicked() {
-                                        // All channels cannot be selected if other channels are
-                                        // also selected.
-                                        // Other channels cannot be selected if all channels is
-                                        // selected.
-                                        // index 0 = all channel
-                                        if index != 0 {
-                                            self.selected_channel[self.selected_guild].remove(&0);
-                                        } else if index == 0 {
-                                            let insert_zero_again = self.selected_channel
-                                                [self.selected_guild]
-                                                .contains(&0);
-                                            self.selected_channel[self.selected_guild].clear();
-                                            if insert_zero_again {
-                                                self.selected_channel[self.selected_guild]
-                                                    .insert(0);
-                                            }
-                                        }
+                                    let space_id = ui.make_persistent_id("space_id");
 
-                                        let already_selected = self.selected_channel
+                                    if self.guild_changed {
+                                        ui.ctx().animate_value_with_time(space_id, 10.0, 0.0);
+                                    }
+                                    let spacing =
+                                        ui.ctx().animate_value_with_time(space_id, 0.0, 0.5);
+
+                                    let reset_label = if self.guild_changed {
+                                        self.guild_changed = false;
+                                        true
+                                    } else {
+                                        false
+                                    };
+
+                                    // The id where value of the current hover position is saved
+                                    let hover_position =
+                                        ui.make_persistent_id("channel_hover_anim");
+
+                                    for (index, channel_name) in
+                                        channel_name_list.iter().enumerate()
+                                    {
+                                        // The selection UI position, animate toward the current
+                                        // position from either the top or the bottom
+                                        let selection_position = ui
+                                            .make_persistent_id("channel_selection_anim")
+                                            .with(index);
+
+                                        ui.add_space(spacing);
+
+                                        let channel_selected = self.selected_channel
                                             [self.selected_guild]
                                             .contains(&index);
 
-                                        if already_selected {
-                                            self.selected_channel[self.selected_guild]
-                                                .remove(&index);
-                                        } else {
-                                            self.selected_channel[self.selected_guild]
-                                                .insert(index);
-                                            let available_rect = ui.max_rect();
-                                            let rect_center = available_rect.center().y;
+                                        // The text position. Animate from the current position from
+                                        // either the top or the bottom
+                                        let text_position =
+                                            ui.make_persistent_id("text_position_anim").with(index);
 
-                                            let current_point = ui
-                                                .ctx()
-                                                .input(|i| i.pointer.hover_pos())
-                                                .unwrap()
-                                                .y;
+                                        let resp = ui.add(AnimatedLabel::new(
+                                            channel_selected,
+                                            *channel_name,
+                                            text_position,
+                                            selection_position,
+                                            hover_position,
+                                        ));
 
-                                            if current_point > rect_center {
-                                                ui.ctx().animate_value_with_time(
-                                                    selection_position,
-                                                    available_rect.bottom(),
-                                                    0.0,
-                                                );
-                                            } else {
-                                                ui.ctx().animate_value_with_time(
-                                                    selection_position,
-                                                    available_rect.top(),
-                                                    0.0,
-                                                );
-                                            }
+                                        if reset_label {
+                                            ui.ctx().animate_value_with_time(
+                                                selection_position,
+                                                ui.max_rect().top(),
+                                                0.0,
+                                            );
+                                            ui.ctx().animate_value_with_time(
+                                                text_position,
+                                                ui.max_rect().top(),
+                                                0.0,
+                                            );
                                         }
-                                        event_bus.publish(AppEvent::SelectedChannelsChanged);
+
+                                        if resp.clicked() {
+                                            // All channels cannot be selected if other channels are
+                                            // also selected.
+                                            // Other channels cannot be selected if all channels is
+                                            // selected.
+                                            // index 0 = all channel
+                                            if index != 0 {
+                                                self.selected_channel[self.selected_guild]
+                                                    .remove(&0);
+                                            } else if index == 0 {
+                                                let insert_zero_again = self.selected_channel
+                                                    [self.selected_guild]
+                                                    .contains(&0);
+                                                self.selected_channel[self.selected_guild].clear();
+                                                if insert_zero_again {
+                                                    self.selected_channel[self.selected_guild]
+                                                        .insert(0);
+                                                }
+                                            }
+
+                                            let already_selected = self.selected_channel
+                                                [self.selected_guild]
+                                                .contains(&index);
+
+                                            if already_selected {
+                                                self.selected_channel[self.selected_guild]
+                                                    .remove(&index);
+                                            } else {
+                                                self.selected_channel[self.selected_guild]
+                                                    .insert(index);
+                                                let available_rect = ui.max_rect();
+                                                let rect_center = available_rect.center().y;
+
+                                                let current_point = ui
+                                                    .ctx()
+                                                    .input(|i| i.pointer.hover_pos())
+                                                    .unwrap()
+                                                    .y;
+
+                                                if current_point > rect_center {
+                                                    ui.ctx().animate_value_with_time(
+                                                        selection_position,
+                                                        available_rect.bottom(),
+                                                        0.0,
+                                                    );
+                                                } else {
+                                                    ui.ctx().animate_value_with_time(
+                                                        selection_position,
+                                                        available_rect.top(),
+                                                        0.0,
+                                                    );
+                                                }
+                                            }
+                                            event_bus.publish(AppEvent::SelectedChannelsChanged);
+                                        }
                                     }
-                                }
-                            },
-                        );
-                    }
-                });
+                                },
+                            );
+                        }
+                    });
             });
     }
 
@@ -502,13 +515,13 @@ impl MainWindow {
                 self.panels.theme_animator.create_id(ui);
             } else {
                 self.panels.theme_animator.animate(ctx);
-            };
+            }
 
-            if !self.connection.connected() {
-                self.connection.show_start_ui(ui, &mut self.event_bus);
-            } else {
+            if self.connection.connected() {
                 self.tabs
                     .show_tab_ui(ui, self.panels.tab_state, &mut self.event_bus);
+            } else {
+                self.connection.show_start_ui(ui, &mut self.event_bus);
             }
         });
     }

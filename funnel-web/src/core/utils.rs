@@ -281,12 +281,12 @@ pub fn save_session(id: String) {
                 Ok(json) => match fs::File::create(&path) {
                     Ok(mut file) => {
                         if let Err(e) = file.write_all(json.as_bytes()) {
-                            error!("Failed to write to session file {:?}: {}", path, e);
+                            error!("Failed to write to session file {path:?}: {e}");
                         }
                     }
-                    Err(e) => error!("Failed to create session file {:?}: {}", path, e),
+                    Err(e) => error!("Failed to create session file {path:?}: {e}"),
                 },
-                Err(e) => error!("Failed to serialize session data: {}", e),
+                Err(e) => error!("Failed to serialize session data: {e}"),
             }
         }
     }
@@ -309,12 +309,12 @@ pub fn get_session() -> Option<String> {
             Ok(content) => match serde_json::from_str::<StringSession>(&content) {
                 Ok(session) => Some(session.id),
                 Err(e) => {
-                    error!("Failed to deserialize session file {:?}: {}", path, e);
+                    error!("Failed to deserialize session file {path:?}: {e}");
                     None
                 }
             },
             Err(e) => {
-                error!("Failed to read session file {:?}: {}", path, e);
+                error!("Failed to read session file {path:?}: {e}");
                 None
             }
         }
@@ -334,9 +334,9 @@ pub fn delete_session() {
         let path = get_session_path();
         if let Some(path) = path {
             if let Err(e) = fs::remove_file(&path) {
-                error!("Failed to delete session file {:?}: {}", path, e);
+                error!("Failed to delete session file {path:?}: {e}");
             } else {
-                info!("Session file {:?} deleted successfully", path);
+                info!("Session file {path:?} deleted successfully");
             }
         }
     }
@@ -347,7 +347,7 @@ fn get_target_path() -> Option<PathBuf> {
     if let Some(mut path) = data_local_dir() {
         path.push("Funnel");
         if let Err(e) = fs::create_dir_all(&path) {
-            error!("Failed to create Funnel directory {:?}: {}", path, e);
+            error!("Failed to create Funnel directory {path:?}: {e}");
             return None;
         }
         Some(path)

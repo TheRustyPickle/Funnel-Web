@@ -86,7 +86,7 @@ impl DateNavigator {
             || shift_pressed && h_pressed
         {
             self.go_previous();
-        };
+        }
 
         if ui
             .add_enabled(connected, Button::new(format!("Next {}", self.nav_name())))
@@ -95,7 +95,7 @@ impl DateNavigator {
             || shift_pressed && l_pressed
         {
             self.go_next();
-        };
+        }
 
         if self.handler.check_date_change() {
             event_bus.publish(AppEvent::DateChanged);
@@ -159,7 +159,7 @@ impl DateNavigator {
             .clicked()
         {
             self.go_previous();
-        };
+        }
 
         if ui
             .add(Button::new(format!("Next {}", self.nav_name())))
@@ -167,7 +167,7 @@ impl DateNavigator {
             .clicked()
         {
             self.go_next();
-        };
+        }
     }
     /// Handler and mutable
     pub fn handler(&mut self) -> &mut DateHandler {

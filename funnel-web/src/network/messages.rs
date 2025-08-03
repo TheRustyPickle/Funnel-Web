@@ -1,9 +1,9 @@
 use eframe::egui::{Context, OpenUrl};
-use funnel_shared::{ErrorType, Request, Response, WsResponse, PAGE_VALUE};
+use funnel_shared::{ErrorType, PAGE_VALUE, Request, Response, WsResponse};
 use log::{error, info};
 
 use crate::{
-    delete_session, get_session, save_session, AppEvent, AppStatus, FetchStatus, MainWindow,
+    AppEvent, AppStatus, FetchStatus, MainWindow, delete_session, get_session, save_session,
 };
 
 const LOGIN_URL: &str = "https://discord.com/oauth2/authorize?client_id=1324028221066576017&response_type=code&redirect_uri=https%3A%2F%2Ffunnel-jyz9.shuttle.app%2Fauth%2Fredirect%2F&scope=identify+guilds";
@@ -278,7 +278,7 @@ fn handle_errors(window: &mut MainWindow, error: ErrorType, ctx: &Context) {
                 .panels
                 .set_app_status(AppStatus::FailedLogOut(reason));
         }
-        ErrorType::UnknowError(reason) => {
+        ErrorType::UnknownError(reason) => {
             error!("Unexpected error. Reason: {reason}");
             window.connection.failed_connection();
             window

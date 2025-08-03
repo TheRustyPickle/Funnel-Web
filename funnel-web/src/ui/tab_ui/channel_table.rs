@@ -1,6 +1,6 @@
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
 use eframe::egui::ahash::{HashMap, HashMapExt, HashSet, HashSetExt};
-use eframe::egui::{Align, Layout, Response, RichText, SelectableLabel, Ui};
+use eframe::egui::{Align, Button, Layout, Response, RichText, Ui};
 use egui_extras::Column;
 use egui_selectable_table::{
     ColumnOperations, ColumnOrdering, SelectableRow, SelectableTable, SortOrder,
@@ -74,7 +74,7 @@ impl ColumnOperations<ChannelRowData, ChannelColumn, Config> for ChannelColumn {
         let response = ui
             .add_sized(
                 ui.available_size(),
-                SelectableLabel::new(is_selected, label_text),
+                Button::selectable(is_selected, label_text),
             )
             .on_hover_text(hover_text);
         Some(response)
@@ -105,18 +105,18 @@ impl ColumnOperations<ChannelRowData, ChannelColumn, Config> for ChannelColumn {
 
         let mut label = ui.add_sized(
             ui.available_size(),
-            SelectableLabel::new(is_selected, &row_text),
+            Button::selectable(is_selected, &row_text),
         );
 
         if show_tooltip {
             label = label.on_hover_text(row_text);
-        };
+        }
 
         label.context_menu(|ui| {
             if ui.button("Copy selected rows").clicked() {
                 table.config.copy_selected = true;
-                ui.close_menu();
-            };
+                ui.close();
+            }
         });
         label
     }

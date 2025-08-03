@@ -1,5 +1,9 @@
 # Pre-Release
 
+## 08.2025
+
+* Dependency updates and deprecation handling
+
 ## 02.2025
 
 * Add persistent Discord login
