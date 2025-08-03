@@ -162,7 +162,7 @@ impl ShowUI for MessageChart {
                     Some([x, y])
                 })
                 .collect();
-            let line = Line::new(points).name(val.to_string());
+            let line = Line::new(val, points).name(val.to_string());
 
             all_lines.push(line);
             generated_labels = true;

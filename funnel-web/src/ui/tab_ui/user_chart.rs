@@ -172,12 +172,14 @@ impl ShowUI for UserChart {
         let mut stacked_bars = Vec::new();
 
         if let Some(bar_data) = all_bars.remove("Active Users") {
-            let bar = BarChart::new(bar_data).width(1.0).name("Active Users");
+            let bar = BarChart::new("Active Users", bar_data)
+                .width(1.0)
+                .name("Active Users");
             stacked_bars.push(bar);
         }
 
         for (name, bar_data) in all_bars {
-            let current_chart = BarChart::new(bar_data).width(1.0).name(name);
+            let current_chart = BarChart::new(&name, bar_data).width(1.0).name(name);
             if stacked_bars.is_empty() {
                 stacked_bars.push(current_chart);
             } else {

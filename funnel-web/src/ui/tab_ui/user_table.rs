@@ -1,6 +1,6 @@
 use chrono::{DateTime, Local, NaiveDate, NaiveDateTime};
 use eframe::egui::ahash::{HashMap, HashMapExt, HashSet, HashSetExt};
-use eframe::egui::{Align, Layout, Response, RichText, SelectableLabel, Ui};
+use eframe::egui::{Align, Button, Layout, Response, RichText, Ui};
 use egui_extras::Column;
 use egui_selectable_table::{
     ColumnOperations, ColumnOrdering, SelectableRow, SelectableTable, SortOrder,
@@ -99,7 +99,7 @@ impl ColumnOperations<UserRowData, UserColumn, Config> for UserColumn {
         let response = ui
             .add_sized(
                 ui.available_size(),
-                SelectableLabel::new(is_selected, label_text),
+                Button::selectable(is_selected, label_text),
             )
             .on_hover_text(hover_text);
         Some(response)
@@ -138,17 +138,17 @@ impl ColumnOperations<UserRowData, UserColumn, Config> for UserColumn {
 
         let mut label = ui.add_sized(
             ui.available_size(),
-            SelectableLabel::new(is_selected, &row_text),
+            Button::selectable(is_selected, &row_text),
         );
 
         if show_tooltip {
             label = label.on_hover_text(row_text);
-        };
+        }
         label.context_menu(|ui| {
             if ui.button("Copy selected rows").clicked() {
                 table.config.copy_selected = true;
-                ui.close_menu();
-            };
+                ui.close();
+            }
         });
         label
     }
@@ -393,7 +393,9 @@ impl UserTable {
             event_bus.publish(AppEvent::UpdateDate(local_date, guild_id));
         }
 
-        if !deleted_message {
+        if deleted_message {
+            user_row_data.increment_deleted_message();
+        } else {
             let message_text = message.message.message_content.clone().unwrap_or_default();
 
             let total_char = message_text.len() as u32;
@@ -402,8 +404,6 @@ impl UserTable {
             user_row_data.increment_total_message();
             user_row_data.increment_total_word(total_word);
             user_row_data.increment_total_char(total_char);
-        } else {
-            user_row_data.increment_deleted_message();
         }
 
         user_row_data.add_channel(channel_id);

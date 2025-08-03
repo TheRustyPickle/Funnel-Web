@@ -3,9 +3,9 @@ use ewebsock::{WsEvent, WsMessage};
 use funnel_shared::{Request, WsResponse};
 use log::{error, info};
 
+use crate::AppStatus;
 use crate::core::MainWindow;
 use crate::network::handle_ws_message;
-use crate::AppStatus;
 
 impl MainWindow {
     pub fn check_ws_receiver(&mut self, ctx: &Context) {
@@ -41,13 +41,15 @@ impl MainWindow {
                             let response = WsResponse::from_json(&text);
 
                             if let Err(e) = response {
-                                error!("Failed to serialize message. Reason: {e}. Message gotten: {text}");
+                                error!(
+                                    "Failed to serialize message. Reason: {e}. Message gotten: {text}"
+                                );
                                 return;
                             }
 
                             if let Some(reply) = handle_ws_message(self, response.unwrap(), ctx) {
                                 self.send_ws(reply);
-                            };
+                            }
                         } else {
                             let message_text = format!("{message:?}");
                             if !message_text.starts_with("Ping") {

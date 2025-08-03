@@ -1,6 +1,6 @@
 use chrono::{DateTime, Local, NaiveDate};
 use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
-use eframe::egui::{Align, CursorIcon, Layout, Response, RichText, SelectableLabel, Slider, Ui};
+use eframe::egui::{Align, Button, CursorIcon, Layout, Response, RichText, Slider, Ui};
 use egui_extras::Column;
 use egui_selectable_table::{
     ColumnOperations, ColumnOrdering, SelectableRow, SelectableTable, SortOrder,
@@ -11,7 +11,7 @@ use strum::IntoEnumIterator;
 
 use crate::core::WordColumn;
 use crate::ui::{DateHandler, ShowUI, TabHandler};
-use crate::{get_stripped_windows, AppEvent, EventBus};
+use crate::{AppEvent, EventBus, get_stripped_windows};
 
 #[derive(Default)]
 pub struct Config {
@@ -53,7 +53,7 @@ impl ColumnOperations<WordRowData, WordColumn, Config> for WordColumn {
         let response = ui
             .add_sized(
                 ui.available_size(),
-                SelectableLabel::new(is_selected, label_text),
+                Button::selectable(is_selected, label_text),
             )
             .on_hover_text(hover_text);
         Some(response)
@@ -79,17 +79,17 @@ impl ColumnOperations<WordRowData, WordColumn, Config> for WordColumn {
 
         let mut label = ui.add_sized(
             ui.available_size(),
-            SelectableLabel::new(is_selected, &row_text),
+            Button::selectable(is_selected, &row_text),
         );
 
         if show_tooltip {
             label = label.on_hover_text(row_text);
-        };
+        }
         label.context_menu(|ui| {
             if ui.button("Copy selected rows").clicked() {
                 table.config.copy_selected = true;
-                ui.close_menu();
-            };
+                ui.close();
+            }
         });
         label
     }
@@ -173,7 +173,7 @@ impl ShowUI for WordTable {
         ui.add_space(5.0);
 
         self.table.show_ui(ui, |builder| {
-            let table = builder
+            builder
                 .striped(true)
                 .resizable(true)
                 .cell_layout(Layout::left_to_right(Align::Center))
@@ -181,9 +181,7 @@ impl ShowUI for WordTable {
                 .column(Column::initial(500.0).clip(true))
                 .column(Column::initial(150.0))
                 .auto_shrink([false; 2])
-                .min_scrolled_height(0.0);
-
-            table
+                .min_scrolled_height(0.0)
         });
     }
 }

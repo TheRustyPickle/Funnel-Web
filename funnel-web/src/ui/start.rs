@@ -1,6 +1,8 @@
-use eframe::egui::{Button, ScrollArea, TextEdit, TopBottomPanel, Ui, Vec2};
+use eframe::egui::{
+    Button, ScrollArea, TextEdit, TopBottomPanel, Ui, Vec2, scroll_area::ScrollSource,
+};
 
-use crate::{get_change_log, AppEvent, EventBus};
+use crate::{AppEvent, EventBus, get_change_log};
 
 #[derive(Default)]
 pub struct Connection {
@@ -40,7 +42,7 @@ impl Connection {
             let spacing_size = ui.painter().round_to_pixel_center(spacing_size / 2.0);
             if spacing_size > 0.0 {
                 ui.add_space(spacing_size);
-            };
+            }
 
             let max_width = ui.available_width();
             let submit_button = Button::new("Login with Discord").min_size(Vec2::new(150.0, 40.0));
@@ -88,7 +90,7 @@ impl Connection {
             let spacing_size = ui.painter().round_to_pixel_center(spacing_size / 2.0);
             if spacing_size > 0.0 {
                 ui.add_space(spacing_size);
-            };
+            }
 
             let max_width = ui.available_width();
 
@@ -129,11 +131,19 @@ impl Connection {
 
                 ui.vertical_centered(|ui| ui.heading("Change Logs"));
                 ui.separator();
-                ScrollArea::vertical().drag_to_scroll(false).show(ui, |ui| {
-                    for log in change_logs {
-                        log.to_ui(ui);
-                    }
-                })
+                let scroll_source = ScrollSource {
+                    drag: false,
+                    scroll_bar: true,
+                    mouse_wheel: true,
+                };
+
+                ScrollArea::vertical()
+                    .scroll_source(scroll_source)
+                    .show(ui, |ui| {
+                        for log in change_logs {
+                            log.to_ui(ui);
+                        }
+                    })
             });
     }
 }

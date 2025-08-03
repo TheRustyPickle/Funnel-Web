@@ -2,8 +2,8 @@ use chrono::{
     DateTime, Datelike, Duration, Local, Months, NaiveDate, NaiveDateTime, Timelike, Weekday,
 };
 use core::ops::RangeInclusive;
-use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
 use eframe::egui::Ui;
+use eframe::egui::ahash::{HashMap, HashMapExt, HashSet};
 use egui_plot::{AxisHints, GridMark, Legend, Line, Plot, PlotPoint, PlotPoints};
 use funnel_shared::{Channel, MemberActivity, MemberCount, MessageWithUser, PAGE_VALUE};
 use indexmap::IndexMap;
@@ -201,7 +201,7 @@ impl Overview {
             let spacing_size = ui.painter().round_to_pixel_center(spacing_size / 2.0);
             if spacing_size > 0.0 {
                 ui.add_space(spacing_size);
-            };
+            }
             let max_width = ui.available_width();
             self.compare_nav.show_ui_compare(ui, event_bus);
             let consumed = max_width - ui.available_width();
@@ -211,7 +211,7 @@ impl Overview {
     }
 
     fn show_member_chart(&mut self, ui: &mut Ui) {
-        let hover_position = ui.make_persistent_id("overivew_chart_hover");
+        let hover_position = ui.make_persistent_id("overview_chart_hover");
         let selected_position = ui.make_persistent_id("overview_chart_selected");
 
         ui.horizontal(|ui| {
@@ -439,15 +439,15 @@ impl Overview {
             .show(ui, |plot_ui| {
                 let mut lines = Vec::new();
                 if let Some(count) = plot_point_count {
-                    let line_count = Line::new(count).name("Total Members");
+                    let line_count = Line::new("Total Members", count).name("Total Members");
                     lines.push(line_count);
                 }
                 if let Some(joins) = plot_point_joins {
-                    let line_joins = Line::new(joins).name("Joins");
+                    let line_joins = Line::new("Joins", joins).name("Joins");
                     lines.push(line_joins);
                 }
                 if let Some(leaves) = plot_point_leaves {
-                    let line_leaves = Line::new(leaves).name("Leaves");
+                    let line_leaves = Line::new("Leaves", leaves).name("Leaves");
                     lines.push(line_leaves);
                 }
                 for line in lines {
@@ -458,9 +458,9 @@ impl Overview {
 
     fn show_card_ui(&mut self, ui: &mut Ui) {
         let total_message_id = ui.make_persistent_id("overview_total_message");
-        let deleted_message_id = ui.make_persistent_id("overivew_message_deleted");
+        let deleted_message_id = ui.make_persistent_id("overview_message_deleted");
         let unique_user_id = ui.make_persistent_id("overview_unique_user");
-        let member_count_id = ui.make_persistent_id("overivew_member_count");
+        let member_count_id = ui.make_persistent_id("overview_member_count");
         let member_join_id = ui.make_persistent_id("overview_member_join");
         let member_leave_id = ui.make_persistent_id("overview_member_leave");
 
@@ -501,7 +501,18 @@ impl Overview {
         let mut space_3 = 0.0;
         let mut space_2 = 0.0;
 
-        if self.card_size != 0.0 {
+        if self.card_size == 0.0 {
+            ui.ctx().animate_value_with_time(space_3_item, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(space_2_item, 0.0, 0.0);
+
+            ui.ctx().animate_value_with_time(total_message_id, 0.0, 0.0);
+            ui.ctx()
+                .animate_value_with_time(deleted_message_id, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(unique_user_id, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(member_count_id, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(member_join_id, 0.0, 0.0);
+            ui.ctx().animate_value_with_time(member_leave_id, 0.0, 0.0);
+        } else {
             let max_size = ui.available_width();
             let space_taken = 3.0 * self.card_size;
             let remaining = max_size - space_taken;
@@ -518,17 +529,6 @@ impl Overview {
                 .ctx()
                 .animate_value_with_time(space_2_item, remaining / 2.0, 0.5);
             space_2 = space_amount;
-        } else {
-            ui.ctx().animate_value_with_time(space_3_item, 0.0, 0.0);
-            ui.ctx().animate_value_with_time(space_2_item, 0.0, 0.0);
-
-            ui.ctx().animate_value_with_time(total_message_id, 0.0, 0.0);
-            ui.ctx()
-                .animate_value_with_time(deleted_message_id, 0.0, 0.0);
-            ui.ctx().animate_value_with_time(unique_user_id, 0.0, 0.0);
-            ui.ctx().animate_value_with_time(member_count_id, 0.0, 0.0);
-            ui.ctx().animate_value_with_time(member_join_id, 0.0, 0.0);
-            ui.ctx().animate_value_with_time(member_leave_id, 0.0, 0.0);
         }
 
         ui.horizontal(|ui| {
@@ -1016,9 +1016,8 @@ impl Overview {
             if let Some(count) = self.get_count().daily.get(&ongoing_date) {
                 member_count = *count as u32;
                 break;
-            } else {
-                ongoing_date = ongoing_date.checked_sub_signed(Duration::days(1)).unwrap();
             }
+            ongoing_date = ongoing_date.checked_sub_signed(Duration::days(1)).unwrap();
         }
 
         member_count

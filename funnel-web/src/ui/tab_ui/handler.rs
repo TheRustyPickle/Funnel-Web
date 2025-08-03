@@ -1,5 +1,5 @@
-use eframe::egui::ahash::{HashMap, HashSet};
 use eframe::egui::Ui;
+use eframe::egui::ahash::{HashMap, HashSet};
 use funnel_shared::Channel;
 use log::info;
 

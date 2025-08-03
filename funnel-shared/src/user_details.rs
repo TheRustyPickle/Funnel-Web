@@ -22,10 +22,10 @@ impl Default for UserDetails {
 impl UserDetails {
     #[must_use]
     pub fn full_username(&self) -> String {
-        if self.discriminator != "0" {
-            format!("{}#{}", self.username, self.discriminator)
-        } else {
+        if self.discriminator == "0" {
             self.username.clone()
+        } else {
+            format!("{}#{}", self.username, self.discriminator)
         }
     }
 
